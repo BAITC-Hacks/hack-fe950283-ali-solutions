@@ -1,0 +1,150 @@
+{
+  "schema_version": "1.0",
+  "run_id": "bf50a0703376ee17868c",
+  "data_hash": "d5aeb3767d6867aea5ed14424b574c2866e27e5d059297f1f2cb6e3701439c1a",
+  "input_hashes": {
+    "nodes.parquet": "d2a45b0df6e9352832d5fb09839d10b9e23f898156c3bab263b051b31cc0296d",
+    "edges.parquet": "4e71dde5cd3115bcb26e91202665532ee6581cf8233a9fc8059ea59fb7358a38",
+    "transactions.parquet": "c30c5317b5439591dde86f2058dc47a3d19b2900c055ded994fe547f6fb7e7da"
+  },
+  "config_hash": "3cdcf113c4bd2708a5ce2085fd68b92ac6d5f1c4394089491554c23fc8a30957",
+  "code_hash": "9bce00bf5ee3d45f1d876798ea009c1e054cc7deeb1105d76c9d0500fc6696ce",
+  "config": {
+    "MIN_TX_KZT": 5000,
+    "MAX_DEPTH": 4,
+    "FAST_DAYS": 2,
+    "RANDOM_SEED": 42,
+    "HUB_MIN_PAYERS": 5,
+    "HUB_MIN_RECIPIENTS": 10,
+    "COORD_MIN_KEY_LINKS": 5,
+    "DISTR_MIN_RECIPIENTS": 10,
+    "DISTR_FANOUT_RATIO": 3,
+    "CONS_MIN_PAYERS": 4,
+    "CONS_ALT_PAYERS": 3,
+    "CONS_ALT_SEED_PAYERS": 2,
+    "TRANSIT_PT": [
+      0.8,
+      1.2
+    ],
+    "TRANSIT_FAST_SHARE": 0.6,
+    "TRANSIT_FAST_PT": [
+      0.5,
+      2.0
+    ],
+    "TRANSIT_MIN_KZT": 20000,
+    "SEED_TRANSIT_MIN_KZT": 100000,
+    "SEED_TRANSIT_MAX_RCPT": 9,
+    "TERM_MAX_PT": 0.1,
+    "TERM_MIN_KZT": 100000,
+    "TERM_MIN_PAYERS": 2,
+    "TERM_MIN_TX": 3,
+    "TRUNC_TERMINAL_P": 0.6,
+    "ROLES": [
+      "coordinator",
+      "consolidator",
+      "distributor",
+      "transit",
+      "terminal",
+      "peripheral"
+    ],
+    "ROLE_RU": {
+      "coordinator": "координатор",
+      "consolidator": "консолидатор",
+      "distributor": "распределитель",
+      "transit": "транзит",
+      "terminal": "конечный получатель",
+      "peripheral": "периферия"
+    },
+    "ROLE_WEIGHT": {
+      "coordinator": 1.0,
+      "consolidator": 0.9,
+      "distributor": 0.75,
+      "terminal": 0.6,
+      "transit": 0.55,
+      "peripheral": 0.1
+    },
+    "PRIORITY_WEIGHTS": {
+      "role": 0.3,
+      "seed": 0.2,
+      "volume": 0.2,
+      "network": 0.15,
+      "patterns": 0.15
+    },
+    "SEED_NOVELTY_FACTOR": 0.85,
+    "TOP_N": 50,
+    "LOUVAIN_RUNS": 10,
+    "MAX_CYCLES": 5000,
+    "SCHEMA_VERSION": "1.0",
+    "period_end": "2026-07-31"
+  },
+  "versions": {
+    "pandas": "3.0.6",
+    "numpy": "2.5.3",
+    "pyarrow": "25.0.1",
+    "networkx": "3.7",
+    "scipy": "1.18.1",
+    "scikit-learn": "1.9.1"
+  },
+  "python": "3.12.14",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "cpu": "AMD64 Family 23 Model 24 Stepping 1, AuthenticAMD",
+  "stats": {
+    "n_nodes": 2248,
+    "n_edges": 3119,
+    "n_tx": 4840,
+    "n_seed": 81,
+    "turnover_kzt": 365890012.01,
+    "date_min": "2026-07-01",
+    "date_max": "2026-07-31",
+    "isolated_seeds": 19,
+    "isolates": 19,
+    "components_all": 35,
+    "components_without_isolates": 16,
+    "self_loops": 0,
+    "duplicate_transaction_rows": 97,
+    "sum_atol": 0.01,
+    "sum_rtol": 1e-10,
+    "warnings": [
+      "Наблюдаемые потоки не являются полным балансом; неизвестен начальный остаток.",
+      "Конец наблюдения принят равным последней операции; можно задать --period-end."
+    ],
+    "period_end": "2026-07-31",
+    "period_end_source": "last_observed_transaction"
+  },
+  "algorithms": {
+    "pagerank": "directed sum_kzt",
+    "betweenness": "directed exact unweighted",
+    "community": "Louvain; reciprocal log1p(amount/5000) weights summed",
+    "seed_cutoff": 4,
+    "temporal": "FIFO 1–2 calendar days, full-window incoming only"
+  },
+  "optional": {
+    "truncation": {
+      "status": "available",
+      "reason": null,
+      "target": "наличие наблюдаемых исходящих на глубинах 1–3; не истинная роль",
+      "train_nodes": 1723,
+      "train_sink_rate": 0.6262333139872316,
+      "cv_auc": 0.7156938791957126,
+      "coefficients": {
+        "log(получено ₸)": -0.635,
+        "число плательщиков": 0.469,
+        "log(число поступлений)": 0.284,
+        "log(крупнейшее поступление)": 0.497,
+        "дней с поступлениями": 0.608,
+        "день последнего поступления": -0.008,
+        "доля входа от веерных отправителей (≥10 получателей)": -0.312,
+        "доля плательщиков-seed": -0.151
+      },
+      "truncated_nodes": 444,
+      "expected_true_sinks": 266.81558089853775,
+      "likely_forwarders": 26,
+      "likely_sinks": 251
+    },
+    "cycles_truncated": false
+  },
+  "timings": {
+    "compute_seconds": 14.402287500000966,
+    "pipeline_seconds": 21.18509610000001
+  }
+}

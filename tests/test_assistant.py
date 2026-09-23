@@ -48,7 +48,10 @@ def test_llm_tool_loop(ctx, monkeypatch):
             else:
                 tool_msg = body["messages"][-1]
                 assert tool_msg["role"] == "tool" and top in tool_msg["content"]
-                msg = {"role": "assistant", "content": f"Узел {top}: признаки координатора."}
+                facts=json.loads(tool_msg["content"])
+                msg = {"role": "assistant", "content": json.dumps({"answer":"Проверенная карточка узла.",
+                       "fact_ids":facts["evidence_refs"], "highlight_gids":[top],
+                       "hypotheses":[], "limitations":[]})}
             out = json.dumps({"choices": [{"message": msg}]}).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -61,6 +64,7 @@ def test_llm_tool_loop(ctx, monkeypatch):
 
     srv = HTTPServer(("127.0.0.1", 0), Fake)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
+    monkeypatch.setenv("AI_ENABLED", "true")
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_BASE_URL", f"http://127.0.0.1:{srv.server_port}/v1")
     r = Assistant(ctx).ask("Кто главный?")

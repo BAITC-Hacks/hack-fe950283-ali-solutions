@@ -14,15 +14,18 @@ from moneygraph import pipeline
 
 
 def main() -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--data", default="data", help="папка с edges/nodes/transactions.parquet")
     ap.add_argument("--out", default="out", help="куда писать выгрузки")
     ap.add_argument("--open", action="store_true", help="открыть экран просмотра в браузере")
+    ap.add_argument("--period-end", help="Конец наблюдения YYYY-MM-DD; по умолчанию последняя операция")
     a = ap.parse_args()
 
     t0 = time.time()
     print("Граф денег: полный пересчёт")
-    ctx = pipeline.run(Path(a.data), Path(a.out))
+    ctx = pipeline.run(Path(a.data), Path(a.out), period_end=a.period_end)
     print("\nПроверка выгрузок по ТЗ:")
     ok = True
     for passed, text in ctx["checks"]:

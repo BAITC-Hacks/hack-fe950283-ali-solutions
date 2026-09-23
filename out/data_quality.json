@@ -1,0 +1,23 @@
+{
+  "n_nodes": 2248,
+  "n_edges": 3119,
+  "n_tx": 4840,
+  "n_seed": 81,
+  "turnover_kzt": 365890012.01,
+  "date_min": "2026-07-01",
+  "date_max": "2026-07-31",
+  "isolated_seeds": 19,
+  "isolates": 19,
+  "components_all": 35,
+  "components_without_isolates": 16,
+  "self_loops": 0,
+  "duplicate_transaction_rows": 97,
+  "sum_atol": 0.01,
+  "sum_rtol": 1e-10,
+  "warnings": [
+    "Наблюдаемые потоки не являются полным балансом; неизвестен начальный остаток.",
+    "Конец наблюдения принят равным последней операции; можно задать --period-end."
+  ],
+  "period_end": "2026-07-31",
+  "period_end_source": "last_observed_transaction"
+}

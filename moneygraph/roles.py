@@ -5,7 +5,7 @@
 транзит → конечный получатель): структурная роль важнее потоковой, поэтому узел,
 который собирает от 6 плательщиков и ничего не отдаёт, — консолидатор, а
 «конечный получатель» уходит в role_secondary. role_score = 0.5 + 0.5·strength:
-прохождение порога даёт уверенность ≥0.5, сила признака добавляет остальное.
+прохождение порога даёт соответствие ≥0.5, сила признака добавляет остальное.
 """
 import numpy as np
 import pandas as pd
@@ -41,13 +41,12 @@ def assign(G, df: pd.DataFrame) -> pd.DataFrame:
     pt_ok = pt.between(*C.TRANSIT_PT)
     fast_ok = (d.fast_in_share >= C.TRANSIT_FAST_SHARE) & pt.between(*C.TRANSIT_FAST_PT)
     transit = nonseed_obs & (d.out_deg > 0) & (pt_ok | fast_ok) & (np.minimum(d.in_kzt, d.out_kzt) >= C.TRANSIT_MIN_KZT)
-    seed_transit = d.is_seed & (d.out_kzt >= C.SEED_TRANSIT_MIN_KZT) & d.out_deg.between(1, C.SEED_TRANSIT_MAX_RCPT)
+
 
     material = (d.in_kzt >= C.TERM_MIN_KZT) | (d.in_deg >= C.TERM_MIN_PAYERS) | (d.in_tx >= C.TERM_MIN_TX)
     p_sink = 1.0 - d.p_forward
-    term_obs = d.out_observed & (d.in_deg > 0) & (pt <= C.TERM_MAX_PT) & material
-    term_trunc = d.truncated & (p_sink >= C.TRUNC_TERMINAL_P) & material
-    terminal = term_obs | term_trunc
+    term_obs = nonseed_obs & (d.in_deg > 0) & (pt <= C.TERM_MAX_PT) & material
+    terminal = term_obs
 
     # ---------- сила признака 0..1
     S = pd.DataFrame(0.0, index=d.index, columns=C.ROLES)
@@ -57,15 +56,14 @@ def assign(G, df: pd.DataFrame) -> pd.DataFrame:
     fanout = 1 - d.in_deg / d.out_deg.replace(0, np.nan)
     S["distributor"] = np.where(distr, 0.6 * sat(d.out_deg, 10, 100) + 0.4 * fanout.fillna(0), 0)
     pt_close = np.clip(1 - np.abs(np.log(pt.clip(lower=1e-9))) / np.log(2), 0, 1)
-    S["transit"] = np.where(transit, 0.5 * pt_close + 0.5 * d.fast_in_share, 0)
-    S.loc[seed_transit, "transit"] = (0.8 * (0.5 * d.top_out_share + 0.5 * sat(d.out_kzt, 1e5, 2e6)))[seed_transit]
+    S["transit"] = np.where(transit, 0.5 * pt_close + 0.5 * d.fast_in_share.fillna(0), 0)
     retention = 1 - np.minimum(pt, 1)
     term_s = 0.4 * retention + 0.3 * sat(d.in_kzt, 1e5, 2e6) + 0.3 * sat(d.in_deg, 1, 6)
-    S["terminal"] = np.where(term_obs, term_s, np.where(term_trunc, term_s * p_sink, 0))
+    S["terminal"] = np.where(term_obs, term_s, 0)
 
     gated = pd.DataFrame({
         "coordinator": coord, "consolidator": cons, "distributor": distr,
-        "transit": transit | seed_transit, "terminal": terminal,
+        "transit": transit, "terminal": terminal,
     })
     has = gated.any(axis=1)
     d["role"] = np.where(has, gated.idxmax(axis=1), "peripheral")  # первая True по порядку ROLES
@@ -75,17 +73,20 @@ def assign(G, df: pd.DataFrame) -> pd.DataFrame:
         ";".join(r for r in gated.columns if gated.at[g, r] and r != d.at[g, "role"]) for g in d.index
     ]
 
-    # периферия: уверенность тем выше, чем дальше узел от любого порога
+    # периферия: соответствие тем выше, чем дальше узел от любого порога
     near = np.maximum.reduce([
         sat(d.in_deg, 1, C.CONS_MIN_PAYERS), sat(d.out_deg, 1, C.DISTR_MIN_RECIPIENTS),
         sat(d[["in_kzt", "out_kzt"]].max(axis=1), 1e4, 1e6),
     ])
     periph = 0.9 - 0.4 * near
-    periph = np.where(d.truncated, periph * (1 - 0.5 * d.p_forward), periph)
+    periph = np.where(d.truncated, periph * 0.5, periph)
     isolated = d.n_edges == 0
-    periph = np.where(isolated, 0.3, periph)
+    periph = np.where(isolated, 0.0, periph)
     d["role_score"] = np.where(d.role == "peripheral", periph, d.role_score).round(3)
 
+    for role in gated:
+        d[f"eligible_{role}"] = gated[role]
+        d[f"score_{role}"] = np.where(gated[role], 0.5 + 0.5 * S[role], 0.0)
     d["flags"] = _flags(d)
     d["evidence"] = [clip_text(_evidence(r), 200) for r in d.itertuples()]
     return d
@@ -93,9 +94,9 @@ def assign(G, df: pd.DataFrame) -> pd.DataFrame:
 
 def _flags(d):
     f = pd.DataFrame(index=d.index)
-    f["быстрый_транзит"] = (d.fast_in_share >= C.TRANSIT_FAST_SHARE) & (d.in_kzt >= C.TRANSIT_MIN_KZT)
+    f["совместимость_1_2_дня"] = (d.fast_in_share >= C.TRANSIT_FAST_SHARE) & (d.in_kzt >= C.TRANSIT_MIN_KZT)
     f["синхронный_сбор"] = d.sync_payers_max >= 3
-    f["возвратные_циклы"] = d.n_return_cycles > 0
+    f["циклы_с_порядком_дат"] = d.n_return_cycles > 0
     f["аномалия_колена"] = d.anomaly
     f["дробление"] = d.split_days >= 3
     f["обрыв_4_колена"] = d.truncated
@@ -105,17 +106,17 @@ def _flags(d):
 
 def _evidence(r) -> str:
     seedp = f" (seed: {r.seed_payers})" if r.seed_payers else ""
-    up = f"; деньги {r.seed_upstream} seed доходят до узла" if r.seed_upstream >= 3 else ""
+    up = f"; достижим из {r.seed_upstream} seed (≤4 рёбер)" if r.seed_upstream >= 3 else ""
     fwd = r.out_kzt / r.in_kzt if r.in_kzt else 0
     if r.role == "coordinator":
         return (f"Хаб: {r.in_deg} плательщиков{seedp} → {r.out_deg} получателей; вход {kzt(r.in_kzt)}, "
                 f"выход {kzt(r.out_kzt)}; связан с {r.key_links} ключевыми узлами"
-                + (f"; возвратных циклов: {r.n_return_cycles}" if r.n_return_cycles else ""))
+                + (f"; циклов со строгим порядком дат: {r.n_return_cycles}" if r.n_return_cycles else ""))
     if r.role == "consolidator":
         if not r.out_observed:
             tail = "исходящие не выгружены (4-е колено)"
         elif not r.out_deg:
-            tail = "дальше не ушло ничего"
+            tail = "исходящих в выгрузке нет"
         elif fwd > 1.2:
             tail = f"отдал {kzt(r.out_kzt)} {r.out_deg} получ. — больше, чем получил в выборке"
         else:
@@ -127,23 +128,17 @@ def _evidence(r) -> str:
                 f"в среднем {kzt(med)} за перевод"
                 + ("; вход занижен (seed)" if r.is_seed else ""))
     if r.role == "transit":
-        if r.is_seed:
-            return (f"seed-дроп: вход вне выборки; переправил {kzt(r.out_kzt)} {r.out_deg} получ., "
-                    f"{pct(r.top_out_share)} — одному")
-        fast = f"; {pct(r.fast_in_share)} ушло ≤{C.FAST_DAYS} дн. после поступления" if r.fast_in_share >= 0.3 else ""
+        fast = f"; {pct(r.fast_in_share)} совместимо с лагом 1–{C.FAST_DAYS} дн." if r.fast_in_share >= 0.3 else ""
         return f"Пропуск {pct(fwd)}: получил {kzt(r.in_kzt)} от {r.in_deg}, отдал {kzt(r.out_kzt)} {r.out_deg} получ.{fast}"
     if r.role == "terminal":
-        if r.truncated:
-            return (f"4-е колено, исходящие не выгружены; модель: P(сток)={1 - r.p_forward:.2f}; "
-                    f"получил {kzt(r.in_kzt)} от {r.in_deg}{up}")
         kept = "исходящих нет" if r.out_deg == 0 else f"дальше ушло лишь {pct(fwd)}"
         return f"Получил {kzt(r.in_kzt)} от {r.in_deg} плательщиков{seedp}, {kept} (исходящие наблюдаемы){up}"
     # peripheral
     if r.n_edges == 0:
-        return "seed без переводов ≥5 тыс ₸ внутри банка за июль: данных для роли нет; нужен запрос входящих и межбанка"
+        return "0 внешних контрагентов: данных для содержательной роли нет; запросить полную выписку"
     if r.truncated:
         return (f"4-е колено (обход оборван): {r.in_tx} поступл. на {kzt(r.in_kzt)} от {r.in_deg}; "
-                f"P(передаёт дальше)={r.p_forward:.2f} — порогов ролей не достигает")
+                "исходящие не наблюдаются; требуется продолжение выгрузки")
     parts = []
     if r.in_deg:
         parts.append(f"получил {kzt(r.in_kzt)} от {r.in_deg}")

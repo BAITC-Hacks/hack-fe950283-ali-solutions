@@ -1,4 +1,4 @@
-"""Устойчивость сети: что станет со структурой, если заблокировать N узлов.
+"""Устойчивость сети: что станет со структурой, если исключить из копии графа N узлов.
 
 Сравниваем стратегии с одинаковым N: наш топ по priority_score, топ по обороту,
 seed с наибольшими исходящими (типичная практика — блокировать известных курьеров)
@@ -20,8 +20,8 @@ def _metrics(G: nx.DiGraph, removed, total_kzt: float) -> dict:
     return {
         "giant_nodes": len(giant),
         "fragments_3plus": sum(len(c) >= 3 for c in comps),
-        "giant_turnover_share": giant_kzt / total_kzt,
-        "edges_left_share": H.number_of_edges() / G.number_of_edges(),
+        "giant_turnover_share": giant_kzt / total_kzt if total_kzt else 0.0,
+        "edges_left_share": H.number_of_edges() / G.number_of_edges() if G.number_of_edges() else 0.0,
     }
 
 
@@ -34,10 +34,10 @@ def simulate(G: nx.DiGraph, df: pd.DataFrame, ns=(5, 10, 20, 50)) -> pd.DataFram
         "топ по обороту": turnover.sort_values(ascending=False).index,
         "seed с макс. исходящими": df[df.is_seed].out_kzt.sort_values(ascending=False).index,
     }
-    rows = [{"strategy": "без блокировок", "n_removed": 0, **_metrics(G, [], total)}]
-    for n in ns:
+    rows = [{"strategy": "исходная сеть", "n_removed": 0, **_metrics(G, [], total)}]
+    for n in sorted({min(n, len(df)) for n in ns}):
         for name, order in strategies.items():
-            rows.append({"strategy": name, "n_removed": n, **_metrics(G, list(order[:n]), total)})
+            rows.append({"strategy": name, "n_removed": min(n, len(order)), **_metrics(G, list(order[:n]), total)})
         rand = [_metrics(G, list(rng.choice(df.index, n, replace=False)), total) for _ in range(30)]
         rows.append({"strategy": "случайные", "n_removed": n,
                      **{k: float(np.mean([r[k] for r in rand])) for k in rand[0]}})

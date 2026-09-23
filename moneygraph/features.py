@@ -13,8 +13,8 @@ from . import config as C
 
 def basic(G: nx.DiGraph, nodes: pd.DataFrame) -> pd.DataFrame:
     df = nodes[["gid", "depth", "is_seed"]].copy().set_index("gid")
-    df["in_deg"] = pd.Series(dict(G.in_degree()))
-    df["out_deg"] = pd.Series(dict(G.out_degree()))
+    df["in_deg"] = [len(set(G.predecessors(g)) - {g}) for g in df.index]
+    df["out_deg"] = [len(set(G.successors(g)) - {g}) for g in df.index]
     df["in_kzt"] = pd.Series(dict(G.in_degree(weight="sum_kzt")))
     df["out_kzt"] = pd.Series(dict(G.out_degree(weight="sum_kzt")))
     df["in_tx"] = pd.Series(dict(G.in_degree(weight="n_tx"))).astype(int)
@@ -43,7 +43,7 @@ def seed_linkage(G: nx.DiGraph, df: pd.DataFrame) -> pd.DataFrame:
     Атрибуция пропорциональная: деньги на счёте обезличены, поэтому каждый исходящий
     перевод узла несёт ту же долю денег фигурантов, что и весь доступный узлу объём.
     Доступный объём = max(вход, выход): если отдал больше, чем получил в выборке,
-    разница пришла извне и «разбавляет» долю.
+    разница моделируется как неатрибутированные средства (внешний вход или начальный остаток).
     """
     seeds = list(df.index[df.is_seed])
     reach = defaultdict(set)
@@ -56,6 +56,10 @@ def seed_linkage(G: nx.DiGraph, df: pd.DataFrame) -> pd.DataFrame:
     order = list(df.index)
     pos = {g: i for i, g in enumerate(order)}
     e = [(pos[u], pos[v], d["sum_kzt"]) for u, v, d in G.edges(data=True)]
+    if not e:
+        df["seed_kzt_in"] = 0.0
+        df["seed_share"] = 0.0
+        return df
     rows, cols, vals = zip(*e)
     W = sparse.csr_matrix((vals, (rows, cols)), shape=(len(order), len(order)))
     is_seed = df.is_seed.to_numpy()
@@ -84,105 +88,112 @@ def centrality(G: nx.DiGraph, df: pd.DataFrame) -> pd.DataFrame:
 
 # ---------------------------------------------------------------- время
 
-def temporal(tx: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
-    tx = tx.copy()
-    tx["day"] = tx.date.dt.day.astype(int)
-    tx = tx.sort_values(["day", "src", "dst"])
-    # кортежи (день, сумма, контрагент): gid держим как int — в float64 18 знаков не влезают
+def temporal(tx: pd.DataFrame, df: pd.DataFrame, period_end=None) -> pd.DataFrame:
+    tx = tx[tx.src != tx.dst].copy()  # self-transfers are not independent counterparties
+    tx["day"] = tx.date.dt.normalize()
+    tx = tx.sort_values(["day", "src", "dst", "sum_kzt"])
+    end = pd.Timestamp(period_end).normalize() if period_end is not None and pd.notna(period_end) else tx.date.max()
     ins, outs = defaultdict(list), defaultdict(list)
     for r in tx.itertuples(index=False):
-        ins[r.dst].append((int(r.day), float(r.sum_kzt), int(r.src)))
-        outs[r.src].append((int(r.day), float(r.sum_kzt), int(r.dst)))
-
+        ins[r.dst].append((r.day, float(r.sum_kzt), int(r.src)))
+        outs[r.src].append((r.day, float(r.sum_kzt), int(r.dst)))
     rows = {}
     for g in df.index:
-        i_l, o_l = ins.get(g, []), outs.get(g, [])
-        r = {
-            "first_in_day": i_l[0][0] if i_l else 0,
-            "last_in_day": i_l[-1][0] if i_l else 0,
-            "max_in_tx": max((a for _, a, _ in i_l), default=0.0),
-            "in_days": len({d for d, _, _ in i_l}),
-            "out_days": len({d for d, _, _ in o_l}),
-            "fast_in_share": 0.0,
-            "lag_median_days": np.nan,
-            "sync_payers_max": 0,
-            "sync_day": 0,
+        incoming, outgoing = ins.get(g, []), outs.get(g, [])
+        metrics = _fast_forward(incoming, outgoing, end, bool(df.at[g, "out_observed"]))
+        by_day = defaultdict(set)
+        for day, _, src in incoming:
+            by_day[day].add(src)
+        day, payers = max(by_day.items(), key=lambda kv: (len(kv[1]), -kv[0].value)) if by_day else (None, set())
+        rows[g] = {
+            "first_in_day": incoming[0][0].toordinal() if incoming else 0,
+            "last_in_day": incoming[-1][0].toordinal() if incoming else 0,
+            "max_in_tx": max((a for _, a, _ in incoming), default=0.0),
+            "in_days": len(by_day), "out_days": len({d for d, _, _ in outgoing}),
+            "sync_payers_max": len(payers), "sync_day": day.date().isoformat() if day is not None else "",
+            **metrics,
         }
-        if i_l and o_l:
-            r["fast_in_share"], r["lag_median_days"] = _fast_forward(i_l, o_l)
-        if i_l:
-            by_day = defaultdict(set)
-            for day, _, src in i_l:
-                by_day[day].add(src)
-            day, payers = max(by_day.items(), key=lambda kv: (len(kv[1]), -kv[0]))
-            r["sync_payers_max"], r["sync_day"] = len(payers), day
-        rows[g] = r
     t = pd.DataFrame.from_dict(rows, orient="index")
-
-    # дробление: несколько переводов одному получателю в один день
     split = tx.groupby(["src", "dst", "day"]).size()
     split = split[split >= 2].groupby(level=0).size()
     t["split_days"] = split.reindex(t.index).fillna(0).astype(int)
-
-    # устойчивые маршруты A→B→C: B переслал дальше в пределах FAST_DAYS; повтор — в ≥2 разные даты
-    fast_routes, repeated = {}, {}
+    routes, repeated = {}, {}
     for g in df.index:
-        if g not in ins or g not in outs:
-            continue
         seen = defaultdict(set)
-        for d_in, _, a in ins[g]:
-            for d_out, _, c in outs[g]:
-                if 0 <= d_out - d_in <= C.FAST_DAYS and a != c:
+        for d_in, _, a in ins.get(g, []):
+            for d_out, _, c in outs.get(g, []):
+                if 1 <= (d_out-d_in).days <= C.FAST_DAYS and a != c:
                     seen[(a, c)].add(d_in)
-        if seen:
-            fast_routes[g] = len(seen)
-            repeated[g] = sum(len(v) >= 2 for v in seen.values())
-    t["fast_routes"] = pd.Series(fast_routes).reindex(t.index).fillna(0).astype(int)
-    t["repeated_routes"] = pd.Series(repeated).reindex(t.index).fillna(0).astype(int)
+        routes[g] = len(seen)
+        repeated[g] = sum(len(v) >= 2 for v in seen.values())
+    t["fast_routes"] = pd.Series(routes)
+    t["repeated_routes"] = pd.Series(repeated)
     return df.join(t)
 
 
-def _fast_forward(i_l, o_l):
-    """FIFO: какая доля полученного ушла дальше не позже FAST_DAYS после поступления."""
-    lots = deque()  # [day, остаток]
-    total_in = sum(a for _, a, _ in i_l)
-    matched, k = 0.0, 0
-    for d_out, amt, _ in o_l:
-        while k < len(i_l) and i_l[k][0] <= d_out:
-            lots.append([i_l[k][0], i_l[k][1]])
+def _fast_forward(i_l, o_l, period_end=None, observed=True):
+    """FIFO calendar lag 1..2; only inputs with a complete window enter the ratio.
+    Floating residual tolerance: 1e-9 KZT; amounts are never rounded here.
+    Same-day activity is descriptive and consumes no FIFO capacity.
+    """
+    incoming, outgoing = sorted(i_l), sorted(o_l)
+    end = pd.Timestamp(period_end) if period_end is not None else max(
+        [d for d, _, _ in incoming + outgoing], default=pd.NaT)
+    total = sum(a for _, a, _ in incoming)
+    eligible = sum(a for d, a, _ in incoming if d + pd.Timedelta(days=C.FAST_DAYS) <= end)
+    in_daily, out_daily = defaultdict(float), defaultdict(float)
+    for d,a,_ in incoming: in_daily[d] += a
+    for d,a,_ in outgoing: out_daily[d] += a
+    same_day = sum(min(a, out_daily[d]) for d,a in in_daily.items())
+    result = {"fast_in_share": np.nan, "lag_median_days": np.nan,
+              "fast_matched_kzt": np.nan, "fast_eligible_kzt": eligible,
+              "fast_coverage": eligible / total if total else np.nan,
+              "fast_status": "no_full_window" if not eligible else "available",
+              "same_day_kzt": same_day, "fast_eligible_events": sum(
+                  d + pd.Timedelta(days=C.FAST_DAYS) <= end for d,_,_ in incoming)}
+    if not observed:
+        result["fast_status"] = "outgoing_unobserved"
+        return result
+    if not eligible:
+        return result
+    lots, k, matched, lags = deque(), 0, 0.0, []
+    for d_out, amount, _ in outgoing:
+        while k < len(incoming) and incoming[k][0] < d_out:
+            lots.append([incoming[k][0], incoming[k][1]])
             k += 1
-        while lots and lots[0][0] < d_out - C.FAST_DAYS:
+        while lots and (d_out-lots[0][0]).days > C.FAST_DAYS:
             lots.popleft()
-        need = amt
-        while need > 0 and lots:
-            take = min(need, lots[0][1])
-            matched += take
-            need -= take
+        while amount > 1e-9 and lots:
+            take = min(amount, lots[0][1])
+            if lots[0][0] + pd.Timedelta(days=C.FAST_DAYS) <= end:
+                matched += take
+                lags.append((d_out-lots[0][0]).days)
+            amount -= take
             lots[0][1] -= take
             if lots[0][1] <= 1e-9:
                 lots.popleft()
-    out_days = np.array(sorted(d for d, _, _ in o_l))
-    lags = []
-    for d_in, _, _ in i_l:
-        j = np.searchsorted(out_days, d_in)
-        if j < len(out_days):
-            lags.append(out_days[j] - d_in)
-    return (matched / total_in if total_in else 0.0), (float(np.median(lags)) if lags else np.nan)
+    result.update(fast_in_share=min(1.0, matched/eligible), fast_matched_kzt=matched,
+                  lag_median_days=float(np.median(lags)) if lags else np.nan)
+    return result
 
 
-# ---------------------------------------------------------------- циклы (возвратные потоки)
+# ---------------------------------------------------------------- структурные циклы и совместимость дат
 
 def cycles(G: nx.DiGraph, tx: pd.DataFrame, df: pd.DataFrame, max_len: int = 6):
-    """Простые циклы длиной ≤6. «Возвратный» — если по датам деньги могли пройти круг."""
+    """Простые циклы длиной ≤6 и строгий порядок дат; без атрибуции средств."""
     days = defaultdict(list)
     for r in tx.itertuples(index=False):
-        days[(r.src, r.dst)].append(r.date.day)
+        days[(r.src, r.dst)].append(r.date)
     for k in days:
         days[k].sort()
 
     n_cyc, n_ret = defaultdict(int), defaultdict(int)
     listing = []
+    G.graph["cycles_truncated"] = False
     for cyc in nx.simple_cycles(G, length_bound=max_len):
+        if len(listing) >= C.MAX_CYCLES:
+            G.graph["cycles_truncated"] = True
+            break
         pairs = list(zip(cyc, cyc[1:] + cyc[:1]))
         bottleneck = min(G[u][v]["sum_kzt"] for u, v in pairs)
         returned = any(_time_consistent(pairs[i:] + pairs[:i], days) for i in range(len(pairs)))
@@ -196,9 +207,9 @@ def cycles(G: nx.DiGraph, tx: pd.DataFrame, df: pd.DataFrame, max_len: int = 6):
 
 
 def _time_consistent(pairs, days) -> bool:
-    t = -1
+    t = pd.Timestamp.min
     for p in pairs:
-        nxt = next((d for d in days[p] if d >= t), None)
+        nxt = next((d for d in days[p] if d > t), None)
         if nxt is None:
             return False
         t = nxt
@@ -223,11 +234,11 @@ def anomalies(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def compute_all(G, nodes, tx):
+def compute_all(G, nodes, tx, period_end=None):
     df = basic(G, nodes)
     df = seed_linkage(G, df)
     df = centrality(G, df)
-    df = temporal(tx, df)
+    df = temporal(tx, df, period_end)
     df, cyc = cycles(G, tx, df)
     df = anomalies(df)
     return df, cyc

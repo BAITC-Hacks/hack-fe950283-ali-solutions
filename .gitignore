@@ -4,3 +4,7 @@ __pycache__/
 .playwright-mcp/
 .DS_Store
 ~$*.docx
+
+.env
+.env.*
+!.env.example

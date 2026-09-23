@@ -34,7 +34,7 @@ TERM_MAX_PT = 0.1               # дальше ушло ≤10% полученн�
 TERM_MIN_KZT = 100_000          # получил ≥100 тыс. ₸
 TERM_MIN_PAYERS = 2             # ...или от ≥2 плательщиков
 TERM_MIN_TX = 3                 # ...или ≥3 поступлений
-TRUNC_TERMINAL_P = 0.6          # 4-е колено: терминал, только если P(сток) ≥ 0.6
+TRUNC_TERMINAL_P = 0.6          # порог диагностической подсказки, не назначения роли
 
 # порядок = приоритет проверки правил: первая выполненная роль — основная
 ROLES = ["coordinator", "consolidator", "distributor", "transit", "terminal", "peripheral"]
@@ -68,3 +68,6 @@ SEED_NOVELTY_FACTOR = 0.85  # seed уже известны правоохран�
 
 TOP_N = 50                 # строк в top_nodes.csv (ТЗ: ≥20)
 LOUVAIN_RUNS = 10          # прогонов Louvain для оценки устойчивости кластеров
+
+MAX_CYCLES = 5000  # deterministic enumeration cap; truncation is reported
+SCHEMA_VERSION = "1.0"

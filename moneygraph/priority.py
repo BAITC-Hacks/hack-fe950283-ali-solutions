@@ -16,12 +16,12 @@ COMPONENT_RU = {
 }
 
 ACTION = {
-    "coordinator": "источник средств и полную выписку (вход извне выборки), связи с другими хабами",
-    "consolidator": "куда уходят накопления: снятие наличных, межбанк, покупка активов",
-    "distributor": "источник средств (вход в выборке занижен) и получателей веера",
+    "coordinator": "источник средств, начальный остаток и полную выписку, связи с другими хабами",
+    "consolidator": "полную выписку и возможные снятие наличных, межбанк, покупка активов",
+    "distributor": "источник средств, начальный остаток и получателей веера",
     "transit": "цепочку до и после узла: возможен транзитный счёт",
-    "terminal": "снятие наличных и межбанковские переводы: внутрибанковских исходящих нет",
-    "peripheral": "без новых данных углублённая проверка не требуется",
+    "terminal": "полную выписку: наблюдаемый выход не превышает 10% входа",
+    "peripheral": "достаточность наблюдений перед дальнейшими выводами",
 }
 
 
@@ -42,13 +42,19 @@ def score(df: pd.DataFrame) -> pd.DataFrame:
         "split": d.split_days >= 3,
     })
     comp["patterns"] = np.minimum(pat.sum(axis=1) / 4, 1.0)
+    comp.loc[d.n_edges == 0, :] = 0.0
     for k in comp:
-        d[f"c_{k}"] = comp[k].round(4)
+        d[f"c_{k}"] = comp[k]
 
-    raw = sum(C.PRIORITY_WEIGHTS[k] * comp[k] for k in C.PRIORITY_WEIGHTS)
-    raw = raw * np.where(d.is_seed, C.SEED_NOVELTY_FACTOR, 1.0)
-    d["priority_score"] = (raw / raw.max()).round(4)
-    d["rank"] = d.priority_score.rank(ascending=False, method="first").astype(int)
+    d["priority_raw"] = sum(C.PRIORITY_WEIGHTS[k] * comp[k] for k in C.PRIORITY_WEIGHTS)
+    d["priority_seed_factor"] = np.where(d.is_seed, C.SEED_NOVELTY_FACTOR, 1.0)
+    adjusted = d.priority_raw * d.priority_seed_factor
+    adjusted = adjusted.where(d.n_edges > 0, 0.0)
+    d["priority_normalizer"] = float(adjusted.max()) or 1.0
+    d["priority_score"] = (adjusted / d.priority_normalizer).round(4)
+    ordered = d.reset_index().sort_values(["priority_score", "gid"], ascending=[False, True])
+    ranks = pd.Series(range(1, len(d)+1), index=ordered.gid)
+    d["rank"] = ranks.reindex(d.index).astype(int)
     d["why"] = [_why(r) for r in d.itertuples()]
     return d
 
@@ -56,24 +62,25 @@ def score(df: pd.DataFrame) -> pd.DataFrame:
 def _why(r) -> str:
     facts = []
     if r.seed_upstream >= 2:
-        facts.append(f"до узла доходят деньги {r.seed_upstream} seed (≈{kzt(r.seed_kzt_in)} по пропорциональной атрибуции)")
+        facts.append(f"достижим из {r.seed_upstream} seed (≤4 рёбер); модель смешивания ≈{kzt(r.seed_kzt_in)}")
     if r.n_return_cycles:
-        facts.append(f"{r.n_return_cycles} возвратных циклов (деньги возвращаются к отправителю)")
+        facts.append(f"{r.n_return_cycles} циклов с возрастающими датами (не трассировка средств)")
     if r.sync_payers_max >= 3:
-        facts.append(f"{r.sync_payers_max} плательщиков в один день ({r.sync_day:02d}.07)")
+        facts.append(f"{r.sync_payers_max} плательщиков в один день ({r.sync_day})")
     if r.fast_in_share >= C.TRANSIT_FAST_SHARE and r.in_kzt >= C.TRANSIT_MIN_KZT:
-        facts.append(f"{r.fast_in_share:.0%} полученного ушло ≤{C.FAST_DAYS} дн.")
+        facts.append(f"{r.fast_in_share:.0%} пригодного входа совместимо с лагом 1–{C.FAST_DAYS} дн.")
     if r.repeated_routes:
         facts.append(f"{r.repeated_routes} повторяющихся маршрутов A→узел→B")
     if r.anomaly:
         facts.append(f"{ANOMALY_COLS[r.anomaly_feature]} — топ-1% своего колена")
     if r.betweenness > 0.001:
         facts.append(f"посредник: betweenness {r.betweenness:.4f}")
+    action = "исходящие следующего колена и полную выписку" if r.truncated else ("полную выписку: наблюдений для роли недостаточно" if r.n_edges == 0 else ACTION[r.role])
     comps = {k: getattr(r, f"c_{k}") * C.PRIORITY_WEIGHTS[k] for k in C.PRIORITY_WEIGHTS}
     top = sorted(comps.items(), key=lambda kv: -kv[1])[:3]
-    drivers = ", ".join(COMPONENT_RU[k] for k, _ in top)
+    drivers = ", ".join(COMPONENT_RU[k] for k, value in top if value > 0) or "нет наблюдаемых сигналов"
     seed = " Уже в деле (seed)." if r.is_seed else ""
-    text = (f"{C.ROLE_RU[r.role].capitalize()} (уверенность {r.role_score:.2f}): {r.evidence}. "
+    text = (f"{C.ROLE_RU[r.role].capitalize()} (соответствие правилу {r.role_score:.2f}): {r.evidence}. "
             f"Главные факторы: {drivers}. " + ("Признаки: " + "; ".join(facts) + ". " if facts else "")
-            + f"Проверить: {ACTION[r.role]}.{seed}")
-    return clip_text(text, 600)
+            + f"Проверить: {action}.{seed}")
+    return text
