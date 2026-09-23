@@ -61,6 +61,33 @@ def test_cycle_strict_dates():
     assert not features._time_consistent(pairs,{pairs[0]:[pd.Timestamp("2026-01-01")],pairs[1]:[pd.Timestamp("2026-01-01")]})
     assert features._time_consistent(pairs,{pairs[0]:[pd.Timestamp("2026-01-31")],pairs[1]:[pd.Timestamp("2026-02-01")]})
 
+def test_incoming_burst_calendar_baseline():
+    incoming=[event("2026-01-31")]*3+[event("2026-02-01")]
+    result=features._incoming_burst(incoming,pd.Timestamp("2026-01-30"),pd.Timestamp("2026-02-02"))
+    assert result["burst_observation_days"]==4
+    assert result["burst_in_max_tx"]==3 and result["burst_in_day"]=="2026-01-31"
+    assert result["burst_in_mean_daily_tx"]==1 and result["burst_in_ratio"]==3
+    assert result["burst_in_flag"] is True
+    assert not features._incoming_burst(incoming,pd.Timestamp("2026-01-31"),pd.Timestamp("2026-02-01"))["burst_in_flag"]
+    assert not features._incoming_burst(incoming[:2],pd.Timestamp("2026-01-01"),pd.Timestamp("2026-02-01"))["burst_in_flag"]
+    quiet=features._incoming_burst([],pd.NaT,pd.NaT)
+    assert quiet["burst_observation_days"]==0 and quiet["burst_in_day"]==""
+    assert not quiet["burst_in_flag"] and math.isnan(quiet["burst_in_ratio"])
+
+def test_incoming_burst_tie_and_uniform():
+    incoming=[event("2026-02-02")]*3+[event("2026-02-01")]*3
+    assert features._incoming_burst(incoming,pd.Timestamp("2026-02-01"),pd.Timestamp("2026-02-06"))["burst_in_day"]=="2026-02-01"
+    uniform=[event(f"2026-02-0{d}") for d in range(1,5)]
+    assert not features._incoming_burst(uniform,pd.Timestamp("2026-02-01"),pd.Timestamp("2026-02-04"))["burst_in_flag"]
+
+def test_repeated_routes_require_distinct_input_days():
+    a,b,c=1,2,3
+    def metrics(dates):
+        tx=pd.DataFrame({"src":[a,a,b,b],"dst":[b,b,c,c],"date":pd.to_datetime(dates),"sum_kzt":[10.,20.,10.,20.]})
+        return features.temporal(tx,pd.DataFrame({"out_observed":[True]},index=[b]),"2026-02-05").loc[b]
+    assert metrics(["2026-01-30","2026-02-01","2026-01-31","2026-02-02"]).repeated_routes==1
+    assert metrics(["2026-01-30","2026-01-30","2026-01-31","2026-02-02"]).repeated_routes==0
+
 @pytest.mark.parametrize("case",["duplicate_gid","duplicate_edge","endpoint","sum","count","nan","date","float_gid"])
 def test_input_rejections(case):
     edges,nodes,tx=tables()
@@ -90,6 +117,9 @@ def test_reports_and_rules(small):
     raw=sum(c["contribution"] for c in p["components"])
     assert raw==pytest.approx(p["raw"])
     assert round(raw*p["seed_factor"]/p["normalizer"],4)==r["result"]["priority_score"]
+    assert r["result"]["patterns"]["sync_payers_max"]==int(d.loc[int(GIDS[2]),"sync_payers_max"])
+    assert r["result"]["temporal"]["burst_in_max_tx"]==int(d.loc[int(GIDS[2]),"burst_in_max_tx"])
+    assert "burst_in_ratio" in r["result"]["markdown"]
     json.dumps(r,allow_nan=False)
 
 def test_common_and_paths(small):
@@ -159,6 +189,60 @@ def test_ai_disabled_and_allowlist(small,monkeypatch):
     assert "error" in bot._call("__dict__",{})
     assert "error" in bot._call("trace",{"gid":GIDS[0],"max_hops":999})
     assert "error" in bot._call("get_node_report",{"gid":GIDS[0],"shell":"pwd"})
+
+def test_offline_common_all_sources_by_default(small,monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY",raising=False)
+    bot=Assistant(small[0])
+    question="Кто собирает деньги с "+", ".join(GIDS[:2])+"?"
+    result=bot.ask(question)
+    assert result["tools"]==["find_common_recipients"]
+    fact=result["facts"][0]
+    assert fact["kind"]=="common_recipients" and fact["value"]["mode"]=="direct"
+    assert fact["value"]["match"]=="all_sources"
+    assert [n["gid"] for n in fact["value"]["recipients"]]==[GIDS[2]]
+    assert result["fact_ids"]==result["audit"][0]["evidence_refs"]
+    # A and B share C, but isolated F has no outgoing edges: all three must match.
+    result=bot.ask("Кто собирает деньги с "+", ".join([*GIDS[:2],GIDS[5]]))
+    assert result["facts"][0]["value"]["recipients"]==[]
+    assert result["focus"] is None
+
+def test_offline_common_opt_in_modes(small,monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY",raising=False)
+    bot=Assistant(small[0])
+    result=bot.ask("Кто достижим через 3 шага от "+", ".join(GIDS[:2]))
+    assert result["facts"][0]["value"]["mode"]=="reachable"
+    assert GIDS[4] in [n["gid"] for n in result["facts"][0]["value"]["recipients"]]
+    result=bot.ask("Кто собирает хотя бы от двух из "+", ".join([*GIDS[:2],GIDS[5]]))
+    assert result["tools"]==["common_downstream"]
+    assert result["facts"][0]["value"]["match"]=="at_least_two_sources"
+    assert "2 из 3" in result["answer"]
+
+def test_offline_five_sources_excludes_partial_match(small,monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY",raising=False)
+    ctx=dict(small[0]);ctx["G"]=ctx["G"].copy()
+    sources=[GIDS[i] for i in (0,1,3,5,6)]
+    for source in sources:
+        ctx["G"].add_edge(int(source),int(GIDS[2]),sum_kzt=10000.,n_tx=1)
+    for source in sources[:4]:
+        ctx["G"].add_edge(int(source),int(GIDS[7]),sum_kzt=10000.,n_tx=1)
+    result=Assistant(ctx).ask("Кто собирает деньги с этих пяти: "+", ".join(sources))
+    recipients=result["facts"][0]["value"]["recipients"]
+    assert [row["gid"] for row in recipients]==[GIDS[2]]
+    assert recipients[0]["matched_sources"]==5
+    assert "5 из 5" in result["answer"]
+
+@pytest.mark.parametrize("gids,suffix,error",[
+    ([GIDS[0],"999999999999999999"],"","Неизвестный gid"),
+    ([GIDS[0]]*2,"","Нужны минимум два разных gid"),
+    (GIDS*3,"","не более 20"),
+    (GIDS[:2]," через 5 шагов","от 1 до 4"),
+])
+def test_offline_common_invalid_sources(small,monkeypatch,gids,suffix,error):
+    monkeypatch.delenv("OPENAI_API_KEY",raising=False)
+    result=Assistant(small[0]).ask("Кто собирает деньги с "+", ".join(gids)+suffix)
+    assert error in result["answer"]
+    assert result["facts"][0]["kind"]=="input_validation"
+    assert not result["tools"]
 
 @pytest.mark.parametrize("failure",["unknown_fact","unknown_gid","malformed","timeout","disconnect","budget","injection","response_shape","tool_shape"])
 def test_ai_failure_fallback(small,monkeypatch,failure):

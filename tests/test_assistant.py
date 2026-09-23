@@ -23,8 +23,11 @@ def test_offline_common_downstream(ctx, monkeypatch):
     cons = df[(df.role == "consolidator") & (df.in_deg >= 5)].sort_values("rank").index[0]
     payers = [str(u) for u in list(G.predecessors(cons))[:3]]
     r = Assistant(ctx).ask(f"Кто собирает деньги с {', '.join(payers)}?")
-    assert r["tools"] == ["common_downstream"]
+    assert r["tools"] == ["find_common_recipients"]
     assert str(cons) in r["answer"]
+    assert r["facts"][0]["kind"] == "common_recipients"
+    assert r["facts"][0]["value"]["match"] == "all_sources"
+    assert r["audit"][0]["evidence_refs"] == r["fact_ids"]
 
 
 def test_offline_node_card(ctx, monkeypatch):

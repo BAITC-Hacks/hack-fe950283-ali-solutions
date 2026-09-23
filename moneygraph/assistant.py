@@ -33,6 +33,8 @@ SYSTEM_PROMPT = f"""Ты — ассистент AML-аналитика банк�
 (параметры текущего набора переданы ниже; seed — исходные узлы выгрузки). Роли узлов: {", ".join(C.ROLES)}.
 Правила:
 - Все факты бери ТОЛЬКО из инструментов. Не выдумывай gid, суммы и связи.
+- Для общего получателя нескольких gid по умолчанию используй find_common_recipients: прямые связи со ВСЕМИ источниками.
+  Достижимость через посредников и совпадения хотя бы от двух источников используй только по явному запросу и подписывай режим.
 - Называй узлы полным gid как десятичной строкой, суммы — в тенге.
 - Формулируй выводы как признаки и гипотезы для проверки («признаки консолидации»), а не как утверждения о виновности.
 - Учитывай ограничения выгрузки: только исходящие переводы от seed на 4 колена, у 4-го колена исходящие не выгружены,
@@ -79,6 +81,9 @@ class GraphTools(AnalysisService):
             "recipients": int(r.out_deg), "seed_upstream": int(r.seed_upstream), "seed_money_in_kzt": round(r.seed_kzt_in),
             "outgoing_observed": bool(r.out_observed), "p_forward_if_truncated": round(float(r.p_forward), 2) if r.truncated else None,
             "flags": r["flags"], "why": r.why,
+            "patterns": {k:r[k] for k in ("sync_payers_max","sync_day","repeated_routes","split_days",
+                                          "n_cycles","n_return_cycles","burst_in_flag","burst_in_day",
+                                          "burst_in_max_tx","burst_in_ratio","burst_observation_days")},
             "top_payers": [{"gid": str(u), "kzt": round(d["sum_kzt"]), "n_tx": d["n_tx"], "role": self.df.at[u, "role"]} for u, _, d in payers],
             "top_recipients": [{"gid": str(v), "kzt": round(d["sum_kzt"]), "n_tx": d["n_tx"], "role": self.df.at[v, "role"]} for _, v, d in rcpts],
             "data_gaps": self.requests[self.requests.gid == g][["request", "reason"]].to_dict("records"),
@@ -188,7 +193,7 @@ class GraphTools(AnalysisService):
 TOOL_SPECS = [
     ("node_card", "Карточка узла: роль, обоснование, суммы, главные плательщики и получатели, пробелы в данных.",
      {"gid": {"type": "string", "description": "полный 18-значный gid или короткий 8-значный"}}, ["gid"]),
-    ("common_downstream", "Кто собирает деньги с нескольких узлов: общие получатели (прямые и через ≤max_hops переводов).",
+    ("common_downstream", "Только по явному запросу совпадений ХОТЯ БЫ ОТ ДВУХ источников: прямые и косвенные; каждый результат подписан от X из N. По умолчанию используй find_common_recipients.",
      {"gids": {"type": "array", "items": {"type": "string"}}, "max_hops": {"type": "integer", "default": 3}}, ["gids"]),
     ("trace", "Проследить деньги от узла: direction=up — откуда пришли, down — куда ушли.",
      {"gid": {"type": "string"}, "direction": {"type": "string", "enum": ["up", "down"]},
@@ -361,7 +366,7 @@ class Assistant:
     # ---------------------------------------------------------------- офлайн
     def _gids(self, q):
         found = []
-        for m in re.findall(r"\d{18}|\d{8}", q):
+        for m in re.findall(r"(?<!\d)(?:\d{18}|\d{8})(?!\d)", q):
             g = self.tools.resolve(m)
             if g is not None and g not in found:
                 found.append(g)
@@ -377,27 +382,57 @@ class Assistant:
         def local(name,*args,**kwargs):
             started=time.monotonic()
             result=getattr(T,name)(*args,**kwargs)
-            envelope=_bounded_result(T._envelope(name,clean(result)))
+            envelope=_bounded_result(result if isinstance(result,dict) and "evidence_refs" in result
+                                     else T._envelope(name,clean(result)))
             facts.extend(envelope["facts"])
             audit.append({"name":name,"arguments":clean({"positional":args,**kwargs}),
                           "duration_ms":round((time.monotonic()-started)*1000),
                           "evidence_refs":envelope["evidence_refs"],"truncated":envelope["truncated"],
                           "status":"error" if isinstance(result,dict) and "error" in result else "ok",
                           "result":envelope["facts"]})
-            return result
+            return result.get("result",result) if isinstance(result,dict) else result
 
-        if len(gids) >= 2 and re.search(r"собира|общ|сход|консолид|кому|куда", ql):
-            used.append("common_downstream")
-            r = local("common_downstream",gids)
-            L.append(f"Совпадения хотя бы от двух из {len(r['sources'])} узлов (наблюдаемые пути ≤3 рёбер):")
-            for x in r["direct_common_recipients"]:
-                L.append(f"• {x['gid']} ({x['role']}) напрямую получает от {len(x['from'])} из них, всего {kzt(x['kzt'])}")
-            for x in r["reachable_common"][:6]:
-                L.append(f"• {x['gid']} ({x['role']}, приоритет #{x['priority_rank']}) — достижим от {x['reached_from']} из {x['of']}: {x['evidence']}")
-            if len(L) == 1:
-                L.append("• общих получателей в пределах 3 шагов не найдено")
-            focus = (r["direct_common_recipients"] or r["reachable_common"] or [{}])[0].get("gid")
-            L.append("Это признаки точки сбора, а не доказательство: проверьте выписки этих получателей.")
+        tokens=re.findall(r"(?<!\d)(?:\d{18}|\d{8})(?!\d)",q)
+        if len(tokens) >= 2 and re.search(r"собира|общ|сход|консолид|кому|куда|достиж", ql):
+            unknown=[g for g in tokens if T.resolve(g) is None]
+            indirect=bool(re.search(r"косвен|достиж|посредник|через|шаг",ql))
+            hop_match=re.search(r"(\d+)\s*(?:шага|шагов|шаг|перевод|ребр|рёбр)",ql)
+            hops=int(hop_match.group(1)) if hop_match else (4 if indirect else 1)
+            error=("Выберите не более 20 исходных gid." if len(tokens)>20 else
+                   "Неизвестный gid: "+", ".join(unknown) if unknown else
+                   "Нужны минимум два разных gid." if len(gids)<2 else
+                   "Глубина поиска должна быть от 1 до 4 шагов." if not 1<=hops<=4 else None)
+            if error:
+                envelope=T._envelope("input_validation",{"error":error})
+                facts.extend(envelope["facts"])
+                L.append(error)
+            elif re.search(r"(?:хотя бы|минимум|не менее)\s+(?:от\s+)?(?:двух|два|2)\b",ql):
+                used.append("common_downstream")
+                r=local("common_downstream",gids,max_hops=hops if indirect else 1)
+                L.append(f"Совпадения хотя бы от двух из {len(r['sources'])} узлов (наблюдаемые пути ≤{r['max_hops']} рёбер):")
+                for x in r["direct_common_recipients"]:
+                    L.append(f"• {x['gid']} ({x['role']}) напрямую получает от {len(x['from'])} из {len(r['sources'])}, всего {kzt(x['kzt'])}")
+                if indirect:
+                    for x in r["reachable_common"][:6]:
+                        L.append(f"• {x['gid']} ({x['role']}, приоритет #{x['priority_rank']}) — достижим от {x['reached_from']} из {x['of']}: {x['evidence']}")
+                if len(L)==1: L.append("• совпадений в выбранной глубине не найдено")
+                focus=(r["direct_common_recipients"] or r["reachable_common"] or [{}])[0].get("gid")
+                if r["truncated"]: L.append("Показана ограниченная выборка совпадений.")
+            else:
+                used.append("find_common_recipients")
+                r=local("find_common_recipients",gids=[str(g) for g in gids],
+                        mode="reachable" if indirect else "direct",max_hops=hops if indirect else 1)
+                L.append(f"{'Общая направленная достижимость' if indirect else 'Прямые общие получатели'} всех {len(r['sources'])} выбранных узлов"
+                         +(f" (≤{hops} рёбер):" if indirect else ":"))
+                for x in r["recipients"][:10]:
+                    detail=("; шаги от источников: "+", ".join(f"{g}: {h}" for g,h in x["hops"].items()) if indirect else
+                            "; наблюдаемый вход от них: "+kzt(sum(e["sum_kzt"] for e in x["direct_edges"])))
+                    L.append(f"• {x['gid']} ({x['role']}) — от {x['matched_sources']} из {x['total_sources']}"+detail)
+                if not r["recipients"]: L.append("• совпадений для всех выбранных источников не найдено")
+                if r["total_results"]>10: L.append(f"Показано 10 из {r['total_results']} совпадений.")
+                focus=r["recipients"][0]["gid"] if r["recipients"] else None
+            if not error:
+                L.append("Это наблюдаемые связи, а не доказательство движения одних и тех же средств: проверьте выписки получателей.")
         elif len(gids) == 2 and re.search(r"связ|пут|цепоч|между", ql):
             used.append("path_between")
             r = local("path_between",*gids)
@@ -434,6 +469,11 @@ class Assistant:
                     L.append("Главные плательщики: " + ", ".join(f"{p['gid']} ({kzt(p['kzt'])})" for p in c["top_payers"][:3]))
                 if c["top_recipients"]:
                     L.append("Главные получатели: " + ", ".join(f"{p['gid']} ({kzt(p['kzt'])})" for p in c["top_recipients"][:3]))
+                p=c["patterns"]
+                if p["burst_in_flag"]:
+                    L.append(f"Входящий всплеск {p['burst_in_day']}: {p['burst_in_max_tx']} операций, {p['burst_in_ratio']:.1f}× среднего за {p['burst_observation_days']} календарных дней. Описательный признак.")
+                if p["repeated_routes"]:
+                    L.append(f"Повторяющихся маршрутов A→узел→B с лагом 1–2 дня: {p['repeated_routes']}; это совместимость дат, не атрибуция конкретных средств.")
                 for gap in c["data_gaps"]:
                     L.append(f"Не хватает данных: {gap['request']} — {gap['reason']}")
                 L.append("")

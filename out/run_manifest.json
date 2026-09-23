@@ -1,18 +1,21 @@
 {
   "schema_version": "1.0",
-  "run_id": "bf50a0703376ee17868c",
+  "run_id": "70f951b546638c1f3a3a",
   "data_hash": "d5aeb3767d6867aea5ed14424b574c2866e27e5d059297f1f2cb6e3701439c1a",
   "input_hashes": {
     "nodes.parquet": "d2a45b0df6e9352832d5fb09839d10b9e23f898156c3bab263b051b31cc0296d",
     "edges.parquet": "4e71dde5cd3115bcb26e91202665532ee6581cf8233a9fc8059ea59fb7358a38",
     "transactions.parquet": "c30c5317b5439591dde86f2058dc47a3d19b2900c055ded994fe547f6fb7e7da"
   },
-  "config_hash": "3cdcf113c4bd2708a5ce2085fd68b92ac6d5f1c4394089491554c23fc8a30957",
-  "code_hash": "9bce00bf5ee3d45f1d876798ea009c1e054cc7deeb1105d76c9d0500fc6696ce",
+  "config_hash": "ebf85c89b0d6a35ce5891de9b7db6436f22ae3a3722b7ecb3e8a65122bf116d9",
+  "code_hash": "194a69c34a7eb812375e349232fe2e4338b3b1eb18c615bfdaac7b26e4d4c40a",
   "config": {
     "MIN_TX_KZT": 5000,
     "MAX_DEPTH": 4,
     "FAST_DAYS": 2,
+    "BURST_MIN_DAYS": 3,
+    "BURST_MIN_TX": 3,
+    "BURST_MIN_RATIO": 3.0,
     "RANDOM_SEED": 42,
     "HUB_MIN_PAYERS": 5,
     "HUB_MIN_RECIPIENTS": 10,
@@ -144,7 +147,7 @@
     "cycles_truncated": false
   },
   "timings": {
-    "compute_seconds": 14.402287500000966,
-    "pipeline_seconds": 21.18509610000001
+    "compute_seconds": 15.820445800000016,
+    "pipeline_seconds": 22.909400800002913
   }
 }

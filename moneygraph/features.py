@@ -93,6 +93,7 @@ def temporal(tx: pd.DataFrame, df: pd.DataFrame, period_end=None) -> pd.DataFram
     tx["day"] = tx.date.dt.normalize()
     tx = tx.sort_values(["day", "src", "dst", "sum_kzt"])
     end = pd.Timestamp(period_end).normalize() if period_end is not None and pd.notna(period_end) else tx.date.max()
+    start = tx.day.min()
     ins, outs = defaultdict(list), defaultdict(list)
     for r in tx.itertuples(index=False):
         ins[r.dst].append((r.day, float(r.sum_kzt), int(r.src)))
@@ -111,6 +112,7 @@ def temporal(tx: pd.DataFrame, df: pd.DataFrame, period_end=None) -> pd.DataFram
             "max_in_tx": max((a for _, a, _ in incoming), default=0.0),
             "in_days": len(by_day), "out_days": len({d for d, _, _ in outgoing}),
             "sync_payers_max": len(payers), "sync_day": day.date().isoformat() if day is not None else "",
+            **_incoming_burst(incoming, start, end),
             **metrics,
         }
     t = pd.DataFrame.from_dict(rows, orient="index")
@@ -129,6 +131,25 @@ def temporal(tx: pd.DataFrame, df: pd.DataFrame, period_end=None) -> pd.DataFram
     t["fast_routes"] = pd.Series(routes)
     t["repeated_routes"] = pd.Series(repeated)
     return df.join(t)
+
+
+def _incoming_burst(incoming, start, end):
+    """Descriptive peak relative to the entire calendar window, including silent days.
+
+    The baseline is this node's observed incoming event count / calendar days.
+    It is neither a learned anomaly nor evidence of coordination, and does not
+    change role or priority. Equal peaks use the earliest date.
+    """
+    days=max(0, (pd.Timestamp(end)-pd.Timestamp(start)).days+1) if pd.notna(start) and pd.notna(end) else 0
+    counts=defaultdict(int)
+    for day, _, _ in incoming:
+        counts[day]+=1
+    day, peak=max(counts.items(),key=lambda item:(item[1],-item[0].value)) if counts else (None,0)
+    mean=len(incoming)/days if days else np.nan
+    ratio=peak/mean if mean>0 else np.nan
+    return {"burst_in_max_tx":peak,"burst_in_day":day.date().isoformat() if day is not None else "",
+            "burst_in_mean_daily_tx":mean,"burst_in_ratio":ratio,"burst_observation_days":days,
+            "burst_in_flag":bool(days>=C.BURST_MIN_DAYS and peak>=C.BURST_MIN_TX and ratio>=C.BURST_MIN_RATIO)}
 
 
 def _fast_forward(i_l, o_l, period_end=None, observed=True):

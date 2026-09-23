@@ -5,17 +5,23 @@ function download(name,text,type="text/csv;charset=utf-8"){
   const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-function button(label,action,parent){
-  const b=document.createElement("button");b.className="btn sec";b.textContent=label;b.onclick=action;parent.appendChild(b);return b;
+function button(label,action,parent,svg="report",iconOnly=false){
+  const b=document.createElement("button");b.className="btn sec"+(iconOnly?" icon-only":"");b.textContent=label;b.dataset.icon=svg;b.onclick=action;parent.appendChild(b);decorateIcons(parent);return b;
 }
 function updateVisible(){
   const count=mode==="ego" && egoCy ? egoCy.nodes().filter(n=>byId.has(n.id())).length : cy.nodes(":visible").length;
+  $("#graphEmpty").hidden=count!==0;
+  $("#graphTitle").textContent=mode==="ego"?"Связи выбранного узла":"Карта переводов";
+ $("#graphSubtitle").textContent=mode==="ego"?(egoCenter||""):"Направленные связи · все данные локально";
   $("#visibleCount").textContent="Показано "+count+" из "+DATA.nodes.length+" узлов"+(mode==="ego"?" (окружение)":"");
 }
-Object.entries(DATA.csv).forEach(([name,text])=>button(name,()=>{
+Object.entries(DATA.csv).forEach(([name,text])=>{
+ const info={"nodes_roles.csv":["Узлы и роли","Все узлы, признаки, роли и приоритет проверки."],"clusters.csv":["Группы узлов","Состав групп, обороты и объяснения структуры."],"top_nodes.csv":["Приоритетные узлы","Первые 50 узлов с обоснованием приоритета."]}[name];
+ const card=document.createElement("div");card.className="export-card";card.innerHTML="<b>"+info[0]+"</b><p>"+info[1]+"</p>";$("#downloads").appendChild(card);
+ const exportButton=button("Скачать CSV",()=>{
  if(location.protocol.startsWith("http")){const a=document.createElement("a");a.href="/download/"+name;a.download=name;document.body.appendChild(a);a.click();a.remove();}
  else download(name,text);
-},$("#downloads")));
+},card,"download");exportButton.setAttribute("aria-label","Скачать "+name);exportButton.title="Скачать "+name;});
 $("#runInfo").textContent="Период: "+(S.date_min||"—")+" — "+(S.date_max||"—")+
   ". Порог исходной выгрузки: 5 000 ₸. Только наблюдаемая сеть. Компонент: "+S.components_all+
   " / без изолятов: "+S.components_without_isolates+". Run: "+M.manifest.run_id;
@@ -30,28 +36,28 @@ function nodeSummary(n){
 }
 function addNodeActions(n){
   const box=$("#nodeActions");
-  button("Добавить к сравнению",()=>{
+  button("Сравнить",()=>{
     const ids=new Set($("#queryGids").value.split(/[\s,;]+/).filter(Boolean));ids.add(n.id);
     $("#queryGids").value=[...ids].join(", ");showTab("analysis");
-  },box);
-  button("Пути от seed",()=>runQuery("trace_paths_from_seeds",{gid:n.id,max_hops:4,limit:10}),box);
-  button("Полная справка",()=>runQuery("get_node_report",{gid:n.id}),box);
+  },box,"compare");
+  button("Пути от seed",()=>runQuery("trace_paths_from_seeds",{gid:n.id,max_hops:4,limit:10}),box,"path");
+  button("Полная справка",()=>runQuery("get_node_report",{gid:n.id}),box,"report");
   button("Скачать справку",()=>{
  if(location.protocol.startsWith("http")){const a=document.createElement("a");a.href="/api/node-report/"+n.id+".md";a.download="node-"+n.id+".md";document.body.appendChild(a);a.click();a.remove();}
  else download("node-"+n.id+".md",nodeSummary(n),"text/markdown;charset=utf-8");
-},box);
+},box,"download");
 }
-$("#t-analysis").innerHTML='<h3>Локальная аналитика</h3><p class="note">Запросы по полному набору, независимо от фильтров графа. Работают через python serve.py без ключа LLM.</p>'+
- '<label for="queryGids">Выбранные gid (2–20 для общих получателей)</label><textarea id="queryGids" style="width:100%;min-height:70px" placeholder="Полные gid через запятую"></textarea>'+
+$("#t-analysis").innerHTML='<p class="note">Общие получатели всех выбранных узлов.</p>'+
+ '<label for="queryGids">От 2 до 20 ID</label><textarea id="queryGids" style="width:100%;min-height:70px" placeholder="Вставьте ID через запятую"></textarea>'+
  '<select id="queryMode"><option value="direct">Прямые получатели всех выбранных</option><option value="reachable">Общая достижимость ≤4 рёбер</option></select>'+
- '<div class="btns"><button class="btn" id="queryCommon">Найти общих получателей</button><button class="btn sec" id="queryClear">Очистить выбор</button></div><div id="queryResult" aria-live="polite"></div>';
+ '<div class="btns"><button class="btn" data-icon="merge" id="queryCommon">Найти связи</button><button class="btn sec icon-only" data-icon="reset" id="queryClear" aria-label="Очистить выбор">Очистить</button></div><div id="queryResult" aria-live="polite"><div class="query-empty">Добавьте узлы из карточек или вставьте ID.</div></div>';
 $("#queryClear").onclick=()=>{$("#queryGids").value="";};
 $("#queryCommon").onclick=()=>runQuery("find_common_recipients",{
   gids:$("#queryGids").value.split(/[\s,;]+/).filter(Boolean),
   mode:$("#queryMode").value,max_hops:$("#queryMode").value==="direct"?1:4
 });
 function highlightPaths(paths){
-  setMode("net");clearHL();
+  setMode("net",false);clearHL();
   const ids=new Set(paths.flatMap(p=>p.gids));
   const pairs=new Set(paths.flatMap(p=>p.edges.map(e=>e.src+"|"+e.dst)));
   cy.batch(()=>{
@@ -62,17 +68,30 @@ function highlightPaths(paths){
   if(ids.size)cy.fit(cy.nodes().filter(el=>ids.has(el.id())),50);
   updateVisible();
 }
+function patternsHTML(p,t){
+  return '<table><tr><td>Синхронные плательщики</td><td>'+p.sync_payers_max+' · '+esc(p.sync_day||'—')+'</td></tr>'+
+    '<tr><td>Повторные A→B→C</td><td>'+p.repeated_routes+'</td></tr><tr><td>Совместимые A→B→C за 1–2 дня</td><td>'+p.fast_routes+'</td></tr>'+
+    '<tr><td>Циклы / с порядком дат</td><td>'+p.n_cycles+' / '+p.n_return_cycles+'</td></tr>'+
+    '<tr><td>Повторные переводы паре за день</td><td>'+p.split_days+'</td></tr>'+
+    '<tr><td>Верхний 1% своего колена</td><td>'+(p.anomaly?'Да · '+esc(p.anomaly_feature):'Нет')+'</td></tr></table>'+
+    '<h3>Пик входящих</h3><p class="note">'+t.burst_in_max_tx+' операций · '+esc(t.burst_in_day||'—')+
+    '. Среднее '+Number(t.burst_in_mean_daily_tx).toFixed(2)+' за день, включая дни без операций ('+t.burst_observation_days+' дней). '+
+    (t.burst_in_ratio==null?'Нет базы для сравнения.':Number(t.burst_in_ratio).toFixed(2)+'× среднего. ')+
+    'Признак всплеска: '+(t.burst_in_flag?'да':'нет')+'. Порог: ≥3 операции, ≥3× среднего, период ≥3 дней.</p>'+
+    '<p class="note">Структурные и временные признаки не доказывают возврат тех же денег или намеренное дробление.</p>';
+}
 function factHTML(f){
   const r=f.value;
   const link=g=>byId.has(g)?'<a class="lnk" data-g="'+esc(g)+'">'+esc(g)+'</a>':esc(g);
   if(f.kind==="node")return '<h3>Узел '+link(r.gid)+'</h3><p>'+esc(r.evidence)+'</p><p>'+esc(r.why)+'</p>'+
-    '<p>Роль: '+esc(r.role)+'; приоритет: '+r.priority_score+'; соответствие: '+r.role_score+'</p>'+
-    '<p>Время: '+esc(r.temporal.fast_status)+', сопоставлено '+(r.temporal.fast_matched_kzt??"—")+
+    '<p>Роль: '+esc(RU[r.role]||r.role)+'; приоритет: '+r.priority_score+'; соответствие: '+r.role_score+'</p>'+
+    '<p>Время: '+esc({available:"доступно",no_full_window:"нет полного окна",outgoing_unobserved:"исходящие неизвестны"}[r.temporal.fast_status])+', сопоставлено '+(r.temporal.fast_matched_kzt??"—")+
     ' / '+r.temporal.fast_eligible_kzt+' KZT; покрытие '+pct(r.temporal.fast_coverage)+'.</p>'+
-    '<p>Сработавшие правила: '+r.roles.filter(x=>x.eligible).map(x=>esc(x.role)+' ('+x.score.toFixed(3)+')').join(", ")+'</p>';
+    '<p>Сработавшие правила: '+r.roles.filter(x=>x.eligible).map(x=>esc(x.role)+' ('+x.score.toFixed(3)+')').join(", ")+'</p>'+
+    '<details><summary>Паттерны активности</summary>'+patternsHTML(r.patterns,r.temporal)+'</details>';
   if(f.kind==="common_recipients")return '<p>Режим: '+(r.mode==="direct"?"прямые переводы":"достижимость")+
     '; результатов: '+r.total_results+'. Совпадение всех выбранных источников.</p>'+
-    r.recipients.map(n=>'<p>'+link(n.gid)+' — '+esc(n.role)+', от '+n.matched_sources+' из '+n.total_sources+'</p>').join("");
+    r.recipients.map(n=>'<p>'+link(n.gid)+' — '+esc(RU[n.role]||n.role)+', от '+n.matched_sources+' из '+n.total_sources+'</p>').join("");
   if(f.kind==="seed_paths")return '<p>Достижим из '+r.reachable_seed_count+' seed в пределах поиска. Показано '+
     r.paths.length+' путей.</p>'+r.paths.map(p=>'<p>'+p.gids.map(link).join(" → ")+
     '<br><span class="note">'+p.edges.map(e=>kzt(e.sum_kzt)).join(" → ")+'</span></p>').join("");
@@ -88,20 +107,20 @@ async function runQuery(action,args){
   if(!location.protocol.startsWith("http")){
     box.textContent="Для запросов запустите python serve.py. Статические карточки и скачивание CSV доступны без сервера.";return;
   }
+  const requestId=(runQuery.version||0)+1;runQuery.version=requestId;
   try{
-    const response=await fetch("/api/query",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({action,args,run_id:M.manifest.run_id})});
-    const j=await response.json();if(!response.ok)throw Error(j.error);
+    const j=await requestJSON("/api/query",{action,args,run_id:M.manifest.run_id});
+    if(requestId!==runQuery.version)return;
     box.innerHTML=j.facts.map(f=>'<div class="ev">'+factHTML(f)+'</div>').join("")+
       '<p class="note">'+(j.truncated?"Выдача ограничена. ":"")+j.limitations.map(esc).join(" ")+'</p>'+
       '<details><summary>Источник результата</summary><p class="note">Run '+esc(j.run_id)+'; '+j.evidence_refs.map(esc).join(", ")+'</p></details>';
     if(j.result.markdown)button("Скачать полную справку",()=>download("node-"+j.result.gid+".md",j.result.markdown,"text/markdown;charset=utf-8"),box);
     bindFactLinks(box);if(j.result.paths)highlightPaths(j.result.paths);
-  }catch(error){box.textContent="Запрос не выполнен: "+error.message;}
+  }catch(error){if(requestId===runQuery.version)box.textContent="Запрос не выполнен: "+error.message;}
 }
 function renderAIFacts(j){
   if(j.facts?.length){
-    const box=document.createElement("div");box.innerHTML='<h3>Факты инструментов</h3>'+j.facts.map(factHTML).join("");
+    const box=document.createElement("details");box.innerHTML='<summary>'+icon('report')+'Факты · '+j.facts.length+'</summary>'+j.facts.map(factHTML).join("");
     bindFactLinks(box);$("#chat").appendChild(box);
   }
   for(const [key,label] of [["hypotheses","Гипотезы"],["limitations","Ограничения"]]){

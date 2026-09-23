@@ -64,7 +64,10 @@ class AnalysisService:
                 "priority":{"components":components,"raw":r.priority_raw,"seed_factor":r.priority_seed_factor,
                             "normalizer":r.priority_normalizer,"isolated":bool(r.n_edges==0)},
                 "temporal":{k:r[k] for k in ("fast_in_share","fast_status","fast_matched_kzt","fast_eligible_kzt",
-                                           "fast_coverage","same_day_kzt")},
+                                           "fast_coverage","same_day_kzt","burst_in_max_tx","burst_in_day",
+                                           "burst_in_mean_daily_tx","burst_in_ratio","burst_observation_days","burst_in_flag")},
+                "patterns":{k:r[k] for k in ("sync_payers_max","sync_day","fast_routes","repeated_routes",
+                                            "n_cycles","n_return_cycles","split_days","anomaly","anomaly_pct","anomaly_feature")},
                 "truncated_by_depth":bool(r.truncated),"model_forward_hint":r.p_forward if r.truncated else None,
                 "incoming":edges("in"),"outgoing":edges("out"),
                 "data_requests":self.ctx["requests"].loc[self.ctx["requests"].gid==g,["request","reason"]].to_dict("records")}
@@ -134,6 +137,9 @@ def node_markdown(r,run_id):
     p=r["priority"]
     lines += [f"Сумма {p['raw']} × seed-поправка {p['seed_factor']} / {p['normalizer']}; изолят: {p['isolated']}.",
               "## Время"]+[f"- {k}: {v}" for k,v in r["temporal"].items()]
+    lines += ["## Повторяющиеся и структурные признаки"]+[f"- {k}: {v}" for k,v in r["patterns"].items()]
+    lines += [f"Всплеск: ≥{C.BURST_MIN_TX} входящих операций в день и ≥{C.BURST_MIN_RATIO:g}× среднего за все календарные дни окна (включая дни без операций), окно ≥{C.BURST_MIN_DAYS} дней. Описательный признак, не влияет на роль и приоритет.",
+              "Повторяющийся маршрут: одна пара A→узел→B с лагом 1–2 дня встречается на двух разных входящих датах. Структурный цикл и строгая совместимость дат не доказывают возврат тех же средств."]
     lines += ["## Ограничения"]+LIMITATIONS
     if r["truncated_by_depth"]: lines.append("Depth=4: исходящие неизвестны, модель не назначает роль.")
     return "\n\n".join(lines)+"\n"

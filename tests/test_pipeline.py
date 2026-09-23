@@ -69,3 +69,24 @@ def test_evidence_explains_with_numbers(run):
     top = pd.read_csv(run["out"] / "top_nodes.csv")
     assert top.why.str.contains(r"\d").all()
     assert len(top) >= 20
+
+
+def test_viewer_bundles_assets_and_exact_facts(run):
+    import json
+    html = (run["out"] / "index.html").read_text(encoding="utf-8")
+    data, _ = json.JSONDecoder().raw_decode(html.split("const DATA = ", 1)[1])
+    for n in data["nodes"]:
+        row = run["df"].loc[int(n["id"])]
+        assert n["ink"] == row.in_kzt and n["outk"] == row.out_kzt
+        assert n["rs"] == row.role_score and n["p"] == row.priority_score
+    assert all(marker not in html for marker in ("/*__THEME__*/", "/*__WORKSPACE__*/", "/*__ADDITIONS__*/", "/*__ICONS__*/", "__INTER_WOFF2__"))
+    assert 'id="closePanel"' in html and 'id="mobileFilters"' in html
+    assert "AbortController" in html and "aria-label" in html
+    assert not re.search(r'<script[^>]+src=["\']https?://', html)
+    assert 'src:url(data:font/woff2;base64,' in html
+    assert 'id="assistantDock" role="dialog"' in html
+    assert 'id="aiLauncher"' in html and 'id="economyMode"' in html
+    assert 'prefers-reduced-motion' in html
+    assert 'egoCy.destroy()' not in html
+    assert 'pixelRatio:1' in html
+    assert all('burst' in n and 'cycles' in n for n in data['nodes'])

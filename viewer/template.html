@@ -5,164 +5,61 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Граф денег — AML</title>
 <style>
-:root{
-  --bg:#f4f5f7; --panel:#ffffff; --ink:#1c2330; --muted:#667085; --line:#e3e6eb; --accent:#1f5eff;
-  --in:#1f77b4; --out:#e4572e; --chip:#eef1f5; --warn:#b54708; --ok:#067647;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-}
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-size:13px}
-button{font:inherit;cursor:pointer}
-#app{display:grid;grid-template-columns:250px 1fr 420px;grid-template-rows:52px 1fr;height:100vh}
-header{grid-column:1/4;display:flex;align-items:center;gap:18px;padding:0 16px;background:#141a26;color:#fff}
-.brand{font-weight:700;font-size:16px;white-space:nowrap}
-.brand small{font-weight:400;color:#9aa4b2;margin-left:6px;font-size:12px}
-#stats{display:flex;gap:16px;color:#c9d1dd;font-size:12px;white-space:nowrap;overflow:hidden}
-#stats b{color:#fff}
-.search{margin-left:auto;position:relative;width:340px}
-.search input{width:100%;padding:8px 10px;border-radius:6px;border:1px solid #2d3748;background:#1f2736;color:#fff;font-size:13px}
-.search input::placeholder{color:#8a94a6}
-#sugg{position:absolute;top:38px;left:0;right:0;background:#fff;color:var(--ink);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:20;max-height:360px;overflow:auto}
-#sugg div{padding:7px 10px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--line)}
-#sugg div:hover,#sugg div.act{background:#eef3ff}
-aside{background:var(--panel);overflow:auto}
-#left{border-right:1px solid var(--line);padding:12px}
-#right{border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
-h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 8px}
-h3:first-child{margin-top:0}
-.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
-.seg button{flex:1;padding:6px 4px;border:0;background:#fff;color:var(--ink)}
-.seg button.on{background:var(--ink);color:#fff}
-.rolef label{display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer}
-.sw{width:12px;height:12px;border-radius:50%;display:inline-block;flex:none}
-.rolef .cnt{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
-select,input[type=number]{width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;background:#fff;font:inherit}
-.row{display:flex;gap:8px;align-items:center;margin:6px 0}
-.legend{font-size:12px;color:var(--muted);line-height:1.7}
-.legend i{display:inline-block;vertical-align:middle;margin-right:6px}
-main{position:relative;min-width:0}
-#cy,#cyEgo{position:absolute;inset:0}
-#cyEgo{background:#fbfbfc}
-.toolbar{position:absolute;top:10px;left:10px;display:flex;gap:6px;z-index:5;flex-wrap:wrap}
-.toolbar button,.toolbar select{background:#fff;border:1px solid var(--line);border-radius:6px;padding:5px 9px;box-shadow:0 1px 2px rgba(0,0,0,.05);width:auto}
-.hint{position:absolute;bottom:10px;left:10px;background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:6px;padding:6px 10px;color:var(--muted);font-size:12px;z-index:5;max-width:70%}
-.tabs{display:flex;border-bottom:1px solid var(--line);flex:none;overflow-x:auto}
-.tabs button{flex:1;padding:10px 6px;border:0;background:none;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
-.tabs button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
-.tab{padding:14px;overflow:auto;flex:1;min-height:0}
-.empty{color:var(--muted);text-align:center;margin-top:40px;line-height:1.6}
-.badge{display:inline-block;padding:2px 8px;border-radius:10px;color:#fff;font-size:11px;font-weight:600}
-.pill{display:inline-block;padding:2px 7px;border-radius:10px;background:var(--chip);color:var(--ink);font-size:11px;margin:2px 3px 2px 0}
-.pill.warn{background:#fef0c7;color:#93370d}
-.gid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
-.card-h{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
-.card-h .big{font-size:18px;font-weight:700}
-.ev{background:#f8fafc;border-left:3px solid var(--accent);padding:8px 10px;margin:10px 0;line-height:1.45}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin:8px 0}
-.grid div{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:3px 0}
-.grid span:first-child{color:var(--muted)}
-.bar{height:8px;background:var(--chip);border-radius:4px;overflow:hidden;flex:1}
-.bar i{display:block;height:100%;background:var(--accent)}
-.comp{display:flex;align-items:center;gap:8px;margin:4px 0}
-.comp span:first-child{width:150px;color:var(--muted)}
-.comp span:last-child{width:44px;text-align:right;font-variant-numeric:tabular-nums}
-table{border-collapse:collapse;width:100%}
-td,th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{color:var(--muted);font-weight:600;font-size:11px}
-tr.clk{cursor:pointer}
-tr.clk:hover{background:#f5f8ff}
-.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.btns{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
-.btn{background:var(--ink);color:#fff;border:0;border-radius:6px;padding:6px 10px}
-.btn.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
-.cl{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer}
-.cl:hover{border-color:var(--accent)}
-.cl p{margin:6px 0 0;line-height:1.45;color:#344054}
-.note{font-size:12px;color:var(--muted);line-height:1.5}
-.chat{display:flex;flex-direction:column;gap:8px}
-.msg{padding:8px 10px;border-radius:8px;line-height:1.5;white-space:pre-wrap}
-.msg.u{background:var(--ink);color:#fff;align-self:flex-end;max-width:90%}
-.msg.a{background:#f2f4f7;align-self:stretch}
-.msg.a a,.lnk{color:var(--accent);cursor:pointer;text-decoration:underline}
-.chatbox{display:flex;gap:6px;margin-top:10px}
-.chatbox textarea{flex:1;resize:vertical;min-height:54px;padding:8px;border:1px solid var(--line);border-radius:6px;font:inherit}
-.ex{display:block;text-align:left;width:100%;background:#fff;border:1px dashed var(--line);border-radius:6px;padding:6px 8px;margin:4px 0;color:#344054}
-.trace{font-size:11px;color:var(--muted);margin-top:4px}
-.trow{padding:8px 4px;border-bottom:1px solid var(--line);cursor:pointer}
-.trow:hover{background:#f5f8ff}
-.trh{display:flex;gap:8px;align-items:center;margin-bottom:3px}
-.trh .rk{width:22px;color:var(--muted)}
-.method td:first-child{white-space:nowrap;font-weight:600}
-svg text{font-family:inherit}
-@media (max-width: 1100px){#app{grid-template-columns:200px 1fr 360px}}
+/*__THEME__*/
 </style>
 </head>
 <body>
 <div id="app">
-  <header>
-    <div class="brand">Граф денег<small>AML-анализ транзакционной сети</small></div>
-    <div id="stats"></div>
-    <div class="search">
-      <input id="q" placeholder="Поиск по gid — полный или часть (клавиша /)" autocomplete="off" spellcheck="false">
-      <div id="sugg" hidden></div>
-    </div>
-  </header>
-
-  <aside id="left">
-    <h3>Режим</h3>
-    <div class="seg" id="mode"><button data-m="net" class="on">Вся сеть</button><button data-m="ego">Связи узла</button></div>
-    <h3>Цвет узлов</h3>
-    <div class="seg" id="colorby"><button data-c="role" class="on">Роль</button><button data-c="cluster">Кластер</button></div>
-    <h3>Роли</h3>
-    <div class="rolef" id="rolef"></div>
-    <h3>Фильтры</h3>
-    <div class="row"><label style="flex:1">Кластер</label></div>
-    <select id="clsel"></select>
-    <div class="row" style="margin-top:10px"><label style="flex:1">Только топ-N по приоритету</label></div>
-    <select id="topn"><option value="0">все узлы</option><option value="20">топ-20</option><option value="50">топ-50</option><option value="100">топ-100</option><option value="300">топ-300</option></select>
-    <div class="row"><label><input type="checkbox" id="seedonly"> только связи seed</label></div>
-    <h3>Результаты</h3><div id="downloads" class="btns"></div><div id="runInfo" class="note"></div><div id="visibleCount" class="note"></div><h3>Легенда</h3>
-    <div class="legend">
-      <div><i class="sw" style="background:#fff;border:3px solid #111"></i>seed — клиент из списка правоохранителей</div>
-      <div><i class="sw" style="background:#fff;border:2px dashed #555"></i>4-е колено, исходящие не выгружены</div>
-      <div><i style="width:18px;height:2px;background:#9aa4b2"></i>→ направление перевода</div>
-      <div>размер узла — приоритет; толщина ребра — сумма</div>
-      <div><i style="width:18px;height:3px;background:var(--in)"></i>откуда пришли деньги</div>
-      <div><i style="width:18px;height:3px;background:var(--out)"></i>куда ушли деньги</div>
-    </div>
-  </aside>
-
-  <main>
-    <div id="cy"></div>
-    <div id="cyEgo" hidden></div>
-    <div class="toolbar" id="tbNet">
-      <button id="fit">Показать всё</button>
-      <button id="labels">Подписи: топ</button>
-    </div>
-    <div class="toolbar" id="tbEgo" hidden>
-      <button id="egoBack">← Вся сеть</button>
-      <select id="hops"><option value="1">1 шаг</option><option value="2" selected>2 шага</option><option value="3">3 шага</option></select>
-      <select id="dir"><option value="both">вверх и вниз</option><option value="up">откуда деньги</option><option value="down">куда деньги</option></select>
-      <button id="egoFit">Вписать</button>
-    </div>
-    <div class="hint" id="hint">Клик — карточка узла и его потоки. В режиме «Связи узла» двойной клик по соседу переносит фокус на него.</div>
-  </main>
-
-  <aside id="right">
-    <nav class="tabs" id="tabs">
-      <button data-t="node" class="on">Узел</button><button data-t="top">Топ</button><button data-t="clusters">Кластеры</button><button data-t="res">Устойчивость</button><button data-t="analysis">Запросы</button><button data-t="ai">Ассистент</button><button data-t="method">Методика</button>
-    </nav>
-    <div class="tab" id="t-node"><div class="empty">Выберите узел на схеме,<br>в поиске или во вкладке «Топ».</div></div>
-    <div class="tab" id="t-top" hidden></div>
-    <div class="tab" id="t-clusters" hidden></div>
-    <div class="tab" id="t-res" hidden></div>
-    <div class="tab" id="t-analysis" hidden></div>
-    <div class="tab" id="t-ai" hidden></div>
-    <div class="tab" id="t-method" hidden></div>
-  </aside>
-</div>
-
+<header>
+<div class="brand"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M8 8L24 10L15 25Z" stroke="#b4edff" stroke-width="1.5"/><circle cx="8" cy="8" r="4" fill="#0b1722"/><circle cx="24" cy="10" r="4" fill="#9deaff"/><circle cx="15" cy="25" r="4" fill="#0b1722"/></svg><div>MoneyGraph<small>Аналитика связей</small></div></div>
+<nav class="tabs" id="tabs" aria-label="Разделы"><button data-t="node" data-icon="network" class="on">Сеть</button><button data-t="top" data-icon="rank">Приоритеты</button><button data-t="clusters" data-icon="groups">Группы</button><button data-t="analysis" data-icon="merge">Сравнить</button></nav>
+<button class="btn sec header-export" id="openExports" data-icon="download">Экспорт</button>
+</header>
+<div class="searchbar">
+<button id="mobileFilters" data-icon="filter" class="icon-btn icon-only" aria-label="Открыть фильтры" aria-expanded="false">Фильтры</button>
+<div class="search" role="search">
+<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="m15 15 5 5" stroke="currentColor" stroke-width="1.8"/></svg>
+<input id="q" aria-label="Поиск узла по идентификатору" placeholder="Поиск по ID…" autocomplete="off" spellcheck="false" role="combobox" aria-controls="sugg" aria-expanded="false" aria-autocomplete="list">
+<kbd>/</kbd><button class="search-clear icon-only" data-icon="close" id="clearSearch" aria-label="Очистить поиск" title="Очистить поиск">Очистить</button><div id="sugg" role="listbox" hidden></div></div><div class="period" id="period"></div></div>
+<div id="drawerShade"></div>
+<aside id="left" aria-label="Обзор сети и фильтры">
+<p class="eyebrow">Обзор сети</p><div id="stats"></div>
+<button class="btn full" id="startAnalysis" data-icon="rank">Приоритетные узлы</button>
+<h3>Представление</h3><div class="seg" id="mode"><button data-m="net" class="on">Вся сеть</button><button data-m="ego">Связи узла</button></div>
+<h3>Цвет узлов</h3><div class="seg" id="colorby"><button data-c="role" class="on">Роль</button><button data-c="cluster">Группа</button></div>
+<details class="filter-details"><summary data-icon="filter">Фильтры</summary><div class="rolef" id="rolef"></div>
+<div class="row"><label for="clsel">Группа узлов</label></div><select id="clsel"></select>
+<div class="row"><label for="topn">Приоритет проверки</label></div><select id="topn"><option value="0">Все узлы</option><option value="20">Первые 20</option><option value="50">Первые 50</option><option value="100">Первые 100</option><option value="300">Первые 300</option></select>
+<div class="row"><label><input type="checkbox" id="seedonly"> Связи исходных фигурантов (seed)</label></div>
+<button class="btn ghost full" data-icon="reset" id="resetFilters">Сбросить</button></details><div id="visibleCount" aria-live="polite"></div>
+<details><summary data-icon="info">Легенда</summary><div class="legend">
+<div><i class="sw" style="background:#34c5ed;border:2px solid #fff"></i>Белый контур — исходный фигурант (seed)</div>
+<div><i class="sw" style="border:2px dashed #a5becf"></i>Пунктир — граница выгрузки</div>
+<div>Стрелка — направление перевода. Размер узла — приоритет, толщина связи — сумма.</div>
+<div><i style="display:inline-block;width:18px;height:2px;background:var(--in)"></i>Входящие переводы</div><div><i style="display:inline-block;width:18px;height:2px;background:var(--out)"></i>Исходящие переводы</div>
+<div>Роли — признаки для проверки, а не вывод о нарушении.</div></div></details>
+<details><summary data-icon="speed">Отрисовка</summary><label class="quality-toggle"><input type="checkbox" id="economyMode"> Экономный режим</label><p class="note">Меньше деталей при движении. Все узлы и стрелки сохраняются.</p><p class="note" id="renderStatus"></p></details>
+<div class="side-footer"><button class="btn ghost" data-icon="book" id="openMethod">Методика</button><button class="btn ghost" data-icon="shield" id="openResilience">Устойчивость</button></div></aside>
+<main aria-label="Направленный граф переводов">
+<div id="cy"></div><div id="cyEgo" hidden></div>
+<div class="graph-heading"><h1 id="graphTitle">Карта переводов</h1><p id="graphSubtitle">Наблюдаемые связи · направление показано стрелками</p></div>
+<div class="toolbar" id="tbNet"><button id="fit" data-icon="focus" class="icon-only" aria-label="Вписать в экран">Вписать</button><button id="labels" data-icon="labels" class="icon-only" aria-label="Подписи: топ">Подписи: топ</button><button id="resetView" data-icon="reset" class="icon-only" aria-label="Сбросить вид">Сбросить</button></div>
+<div class="toolbar" id="tbEgo" hidden><button id="egoBack" data-icon="back" class="icon-only" aria-label="Вся сеть">Вся сеть</button><select id="hops" aria-label="Глубина окружения"><option value="1" selected>1 шаг</option><option value="2">2 шага</option><option value="3">3 шага</option></select>
+<select id="dir" aria-label="Направление связей"><option value="both">Все связи</option><option value="up">Входящие</option><option value="down">Исходящие</option></select><button id="egoFit" data-icon="focus" class="icon-only" aria-label="Вписать окружение">Вписать</button></div>
+<div class="zoom-controls"><button class="icon-btn icon-only" data-icon="plus" id="zoomIn" aria-label="Приблизить граф" title="Приблизить">Приблизить</button><button class="icon-btn icon-only" data-icon="minus" id="zoomOut" aria-label="Отдалить граф" title="Отдалить">Отдалить</button></div>
+<div class="graph-empty" id="graphEmpty" hidden><b>Нет узлов с такими фильтрами</b><p>Измените условия или покажите всю сеть.</p><button class="btn" id="emptyReset">Сбросить фильтры</button></div>
+<div class="hint" id="hint">Выберите узел · Колесо — масштаб</div></main>
+<aside id="right" aria-label="Панель анализа" hidden>
+<div class="panel-heading"><h2 id="panelTitle">Карточка узла</h2><button class="close-btn icon-only" data-icon="close" id="closePanel" aria-label="Закрыть панель" title="Закрыть · Esc">Закрыть</button></div>
+<div class="tab" id="t-node"><div class="empty"><h3>Выберите узел</h3>Найдите ID или нажмите на граф.<br><button class="btn" data-icon="rank" id="emptyTop">Приоритеты</button></div></div>
+<div class="tab" id="t-top" hidden></div><div class="tab" id="t-clusters" hidden></div><div class="tab" id="t-res" hidden></div><div class="tab" id="t-analysis" hidden></div><div class="tab" id="t-method" hidden></div>
+<div class="tab" id="t-export" hidden><p class="note">Скачайте результаты текущего расчёта. Для справки по конкретному узлу откройте его карточку.</p><div id="downloads"></div><details><summary>Данные и версия расчёта</summary><div id="runInfo" class="note"></div></details></div>
+</aside></div>
+<section id="assistantDock" role="dialog" aria-labelledby="assistantTitle" hidden>
+<div class="assistant-heading"><span class="assistant-symbol" data-icon="spark" aria-label="AI"></span><div><b id="assistantTitle">Ассистент</b><span>По данным MoneyGraph</span></div><button id="aiClose" class="icon-btn icon-only" data-icon="close" aria-label="Свернуть ассистента">Свернуть</button></div>
+<div id="t-ai"></div></section>
+<button id="aiLauncher" data-icon="spark" aria-label="Открыть AI-ассистента" aria-controls="assistantDock" aria-expanded="false"><span>AI</span></button>
+<div id="toast" class="toast" role="status" hidden></div>
 <script>/*__CYTOSCAPE__*/</script>
 <script>
 /*__DATA__*/
@@ -176,19 +73,25 @@ DATA.edges.forEach(e => {
   (inE.get(e.t) || inE.set(e.t, []).get(e.t)).push(e);
 });
 const ranked = [...DATA.nodes].sort((a, b) => a.rk - b.rk);
-const CL_PAL = ["#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd","#8c564b","#e377c2","#17becf","#bcbd22","#393b79","#637939","#8c6d31","#843c39","#7b4173","#3182bd","#e6550d","#31a354","#756bb1","#636363","#fd8d3c"];
-const clColor = c => c === 0 ? "#c7ccd4" : CL_PAL[(c - 1) % CL_PAL.length];
+const CL_PAL = ["#37c8eb","#ff7f0e","#2ca02c","#d62728","#9467bd","#8c564b","#e377c2","#17becf","#bcbd22","#393b79","#637939","#8c6d31","#843c39","#7b4173","#3182bd","#e6550d","#31a354","#756bb1","#636363","#fd8d3c"];
+const clColor = c => c === 0 ? "#557588" : CL_PAL[(c - 1) % CL_PAL.length];
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+/*__ICONS__*/
 function kzt(x){ x = +x || 0; if (x >= 1e6) return (x/1e6).toFixed(1).replace(".0","") + " млн ₸"; if (x >= 1e3) return Math.round(x/1e3) + " тыс ₸"; return Math.round(x) + " ₸"; }
 const pct = x => x == null ? "—" : Math.round(x*100) + "%";
 const badge = r => `<span class="badge" style="background:${COLORS[r]}">${RU[r]}</span>`;
 
 let selected = null, mode = "net", colorBy = "role", labelsMode = "top";
+const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+let economy=(navigator.hardwareConcurrency||4)<=4 || (navigator.deviceMemory||8)<=4;
+try{const saved=localStorage.getItem('moneygraph-economy');if(saved!==null)economy=saved==='true';}catch{}
+const renderOptions={pixelRatio:1,textureOnViewport:true,hideEdgesOnViewport:true,motionBlur:false};
 
 // ---------------------------------------------------------------- header
 const S = M.stats;
-$("#stats").innerHTML = `<span><b>${S.n_nodes}</b> узлов</span><span><b>${S.n_edges}</b> рёбер</span><span><b>${S.n_seed}</b> seed</span><span>оборот <b>${kzt(S.turnover_kzt)}</b></span><span><b>${DATA.clusters.length}</b> кластеров</span><span>${S.date_min} — ${S.date_max}</span>`;
+$("#stats").innerHTML = `<span>Узлы<b>${S.n_nodes.toLocaleString("ru-RU")}</b></span><span>Переводы<b>${S.n_tx.toLocaleString("ru-RU")}</b></span><span>Исходные фигуранты<b>${S.n_seed}</b></span><span>Группы<b>${DATA.clusters.length}</b></span><span class="turnover">Наблюдаемый оборот<b>${kzt(S.turnover_kzt)}</b></span>`;
+$("#period").innerHTML = '<span class="status-dot"></span>Данные за период<b>'+S.date_min+' — '+S.date_max+'</b>';
 
 // ---------------------------------------------------------------- main graph
 const ew = w => Math.max(0.6, Math.min(5, 0.6 + 4.4 * (Math.log10(w) - 3.7) / 2.9));
@@ -201,33 +104,37 @@ function elementsFor(nodes, withPos){
   return els;
 }
 const baseStyle = [
-  {selector:"node", style:{"width":"data(sz)","height":"data(sz)","background-color":"data(col)","border-width":0,"label":"data(lbl)","font-size":10,"color":"#1c2330","text-outline-color":"#fff","text-outline-width":2,"text-valign":"top","text-margin-y":-3,"min-zoomed-font-size":7}},
-  {selector:"node[sd = 1]", style:{"border-width":2.5,"border-color":"#111"}},
-  {selector:"node[tr = 1]", style:{"border-width":1.2,"border-style":"dashed","border-color":"#555"}},
-  {selector:"edge", style:{"width":"data(ew)","line-color":"#9aa4b2","opacity":0.28,"curve-style":"straight","target-arrow-shape":"triangle","target-arrow-color":"#9aa4b2","arrow-scale":0.6}},
+  {selector:"node", style:{"width":"data(sz)","height":"data(sz)","background-color":"data(col)","border-width":1,"border-color":"#759bac","border-opacity":1,"label":"data(lbl)","font-family":"Inter","font-size":10,"color":"#dcebf5","text-outline-color":"#0b1722","text-outline-width":1,"text-valign":"top","text-margin-y":-3,"min-zoomed-font-size":7}},
+  {selector:"node[sd = 1]", style:{"border-width":2.5,"border-color":"#f1fbff"}},
+  {selector:"node[tr = 1]", style:{"border-width":1.2,"border-style":"dashed","border-color":"#a1bfd0"}},
+  {selector:"edge", style:{"width":"data(ew)","line-color":"#30404f","opacity":1,"curve-style":"straight","target-arrow-shape":"triangle","target-arrow-color":"#30404f","arrow-scale":0.6}},
   {selector:".faded", style:{"opacity":0.07}},
-  {selector:"edge.ein", style:{"line-color":"#1f77b4","target-arrow-color":"#1f77b4","opacity":0.95,"z-index":9}},
-  {selector:"edge.eout", style:{"line-color":"#e4572e","target-arrow-color":"#e4572e","opacity":0.95,"z-index":9}},
-  {selector:"node.sel", style:{"border-width":4,"border-color":"#1f5eff","border-style":"solid","z-index":10}},
+  {selector:"edge.faded", style:{"opacity":1,"line-color":"#142431","target-arrow-color":"#142431"}},
+  {selector:"edge.ein", style:{"line-color":"#37c8eb","target-arrow-color":"#37c8eb","opacity":1,"z-index":9}},
+  {selector:"edge.eout", style:{"line-color":"#ffae75","target-arrow-color":"#ffae75","opacity":1,"z-index":9}},
+  {selector:"node.sel", style:{"border-width":4,"border-color":"#72dcff","border-style":"solid","z-index":10}},
   {selector:"node.nb", style:{"z-index":8}},
-  {selector:"edge.path", style:{"line-color":"#1f5eff","target-arrow-color":"#1f5eff","opacity":1,"width":4}},
+  {selector:"edge.path", style:{"line-color":"#72dcff","target-arrow-color":"#72dcff","opacity":1,"width":4}},
   {selector:".hide", style:{"display":"none"}},
 ];
 const cy = cytoscape({container:$("#cy"), elements:elementsFor(DATA.nodes, true), layout:{name:"preset"}, style:baseStyle,
-  minZoom:0.03, maxZoom:5, textureOnViewport:true, hideEdgesOnViewport:true});
-cy.fit(undefined, 30);
+  minZoom:0.03, maxZoom:5, ...renderOptions});
+cy.fit(undefined, 65);
 
 function applyLabels(){
   cy.batch(() => cy.nodes().forEach(el => {
     const n = byId.get(el.id());
-    const show = el.hasClass("sel") || el.hasClass("nb") && labelsMode !== "none" || labelsMode === "top" && n.rk <= 25 || labelsMode === "all";
-    el.data("lbl", show ? n.s : "");
+    const show = el.hasClass("sel") || (!economy && (el.hasClass("nb") && labelsMode !== "none" || labelsMode === "top" && n.rk <= 25 || labelsMode === "all"));
+    const next=show ? n.s : "";
+    if(el.data("lbl")!==next)el.data("lbl",next);
   }));
 }
 applyLabels();
 $("#labels").onclick = () => {
   labelsMode = {top:"none", none:"all", all:"top"}[labelsMode];
-  $("#labels").textContent = "Подписи: " + {top:"топ", none:"нет", all:"все"}[labelsMode];
+  if(economy){economy=false;$("#economyMode").checked=false;saveEconomy();}
+  const label="Подписи: " + {top:"топ", none:"нет", all:"все"}[labelsMode];
+  $("#labels").title=label;$("#labels").setAttribute("aria-label",label);$("#labels").querySelector('.button-label').textContent=label;
   applyLabels();
 };
 $("#fit").onclick = () => cy.fit(cy.nodes(":visible"), 30);
@@ -236,17 +143,17 @@ function clearHL(){
   cy.batch(() => { cy.elements().removeClass("faded ein eout sel nb path"); });
 }
 function highlight(id){
-  clearHL();
   const el = cy.getElementById(id);
   if (!el.length) return;
   cy.batch(() => {
+    clearHL();
     cy.elements().addClass("faded");
     el.removeClass("faded").addClass("sel");
     el.incomers("edge").removeClass("faded").addClass("ein");
     el.outgoers("edge").removeClass("faded").addClass("eout");
     el.neighborhood("node").removeClass("faded").addClass("nb");
+    applyLabels();
   });
-  applyLabels();
 }
 cy.on("tap", "node", ev => selectNode(ev.target.id(), false));
 cy.on("tap", ev => { if (ev.target === cy){ clearHL(); applyLabels(); } });
@@ -274,10 +181,10 @@ function applyFilters(){
   updateVisible();
 }
 $("#colorby").onclick = e => {
-  const c = e.target.dataset.c; if (!c) return;
+  const c = e.target.closest('[data-c]')?.dataset.c; if (!c) return;
   colorBy = c; [...$("#colorby").children].forEach(b => b.classList.toggle("on", b.dataset.c === c));
   cy.batch(() => cy.nodes().forEach(el => el.data("col", nodeColor(byId.get(el.id())))));
-  if (egoCy) egoCy.nodes().forEach(el => { const n = byId.get(el.id()); if (n) el.data("col", nodeColor(n)); });
+  if (egoCy) egoCy.batch(()=>egoCy.nodes().forEach(el => { const n = byId.get(el.id()); if (n) el.data("col", nodeColor(n)); }));
 };
 
 // ---------------------------------------------------------------- ego graph: послойная схема «откуда → узел → куда»
@@ -313,10 +220,14 @@ function showEgo(id){
     const more = ids.filter(k => k.startsWith("more"));
     const all = [...real, ...more];
     all.forEach((k, i) => {
-      const y = (i - (all.length - 1) / 2) * 52, x = l * 300;
-      if (k.startsWith("more")){ els.push({group:"nodes", data:{id:k, lbl:`+${level.get(k).n} ещё`, col:"#e9ecf1", sz:22, sd:0, tr:0, more:1}, position:{x, y}}); return; }
+      let y = (i - (all.length - 1) / 2) * 52, x = l * 300;
+      if(hops===1 && l!==0){
+        const angle=(l<0?Math.PI/2:-Math.PI/2)+(i+.5)/all.length*Math.PI;
+        x=Math.cos(angle)*260;y=Math.sin(angle)*260;
+      }
+      if (k.startsWith("more")){ els.push({group:"nodes", data:{id:k, lbl:`+${level.get(k).n} ещё`, col:"#213e50", sz:22, sd:0, tr:0, more:1}, position:{x, y}}); return; }
       const n = byId.get(k);
-      els.push({group:"nodes", data:{id:k, lbl:`${n.s} · ${RU[n.r]}${n.sd ? " · seed" : ""}`, col:nodeColor(n), sz:k === id ? 46 : 14 + 26 * n.p, sd:n.sd, tr:n.tr}, position:{x, y}});
+      els.push({group:"nodes", data:{id:k, lbl:hops===1?n.s:`${n.s} · ${RU[n.r]}${n.sd ? " · seed" : ""}`, col:nodeColor(n), sz:k === id ? 46 : 14 + 26 * n.p, sd:n.sd, tr:n.tr}, position:{x, y}});
     });
   });
   const inView = new Set([...level.keys()]);
@@ -326,35 +237,38 @@ function showEgo(id){
     const cls = lt === 0 || (lt <= 0 && ls < lt) ? "ein" : ls === 0 || (ls >= 0 && lt > ls) ? "eout" : "";
     els.push({group:"edges", data:{id:"x"+i, source:e.s, target:e.t, ew:ew(e.w) + 0.6, elbl:`${kzt(e.w)}${e.n > 1 ? " · " + e.n + " пер." : ""}`}, classes:cls});
   });
-  if (egoCy) egoCy.destroy();
-  egoCy = cytoscape({container:$("#cyEgo"), elements:els, layout:{name:"preset"}, minZoom:0.1, maxZoom:4,
-    style:[...baseStyle,
+  const egoStyle=[...baseStyle,
       {selector:"node", style:{"text-valign":"bottom","text-margin-y":4,"font-size":11,"min-zoomed-font-size":0}},
-      {selector:"node[more = 1]", style:{"shape":"round-rectangle","width":90,"height":22,"text-valign":"center","text-margin-y":0,"color":"#667085","border-width":1,"border-color":"#c7ccd4"}},
-      {selector:"edge", style:{"curve-style":"bezier","opacity":0.55,"label":"data(elbl)","font-size":9,"color":"#475467","text-background-color":"#fbfbfc","text-background-opacity":1,"text-background-padding":1,"text-rotation":"autorotate","min-zoomed-font-size":6}},
-    ]});
+      {selector:"node[more = 1]", style:{"shape":"round-rectangle","width":90,"height":22,"text-valign":"center","text-margin-y":0,"color":"#a9c4d6","border-width":1,"border-color":"#557588"}},
+      {selector:"edge", style:{"curve-style":economy?"straight":"bezier","opacity":1,"label":hops===1||economy?"":"data(elbl)","font-size":9,"color":"#b2cfdf","text-background-color":"#0e202d","text-background-opacity":1,"text-background-padding":1,"text-rotation":"autorotate","min-zoomed-font-size":6}},
+    ];
+  if(egoCy){egoCy.stop(true,false);egoCy.batch(()=>{egoCy.elements().remove();egoCy.add(els);egoCy.style(egoStyle);});egoCy.resize();}
+  else{
+    egoCy=cytoscape({container:$("#cyEgo"),elements:els,layout:{name:"preset"},minZoom:0.1,maxZoom:4,style:egoStyle,...renderOptions});
+    egoCy.on("tap", "node", ev => { if (!ev.target.data("more")) selectNode(ev.target.id(), false); });
+    egoCy.on("dbltap", "node", ev => { if (!ev.target.data("more")) selectNode(ev.target.id(), true); });
+  }
   egoCy.getElementById(id).addClass("sel");
   egoCy.fit(undefined, 40);
   updateVisible();
-  egoCy.on("tap", "node", ev => { if (!ev.target.data("more")) selectNode(ev.target.id(), false); });
-  egoCy.on("dbltap", "node", ev => { if (!ev.target.data("more")) selectNode(ev.target.id(), true); });
-  const n = byId.get(id);
-  $("#hint").innerHTML = `Связи узла <b class="gid">${n.id}</b>: слева — кто платил (синие рёбра), справа — кому ушло (оранжевые). Подписи рёбер — сумма за период. Двойной клик — перейти к соседу.`;
+  $("#hint").textContent = `Слева — вход, справа — выход · До ${MAX_PER_LEVEL} на сторону и шаг · Двойной клик — переход`;
 }
-function setMode(m){
+function setMode(m,syncSelection=true){
+  const changed=mode!==m;
   mode = m;
   [...$("#mode").children].forEach(b => b.classList.toggle("on", b.dataset.m === m));
-  $("#cyEgo").hidden = m !== "ego"; $("#tbEgo").hidden = m !== "ego"; $("#tbNet").hidden = m === "ego";
+  $("#cy").hidden = m === "ego"; $("#cyEgo").hidden = m !== "ego"; $("#tbEgo").hidden = m !== "ego"; $("#tbNet").hidden = m === "ego";
   if (m === "ego"){
-    const id = selected || ranked[0].id;
+    const id = selected || ranked[0]?.id;if(!id)return;
     if (!selected) selectNode(id, false);
     showEgo(id);
   } else {
-    $("#hint").innerHTML = "Клик — карточка узла и его потоки. В режиме «Связи узла» двойной клик по соседу переносит фокус на него.";
-    cy.resize();
+    $("#hint").textContent = "Выберите узел · Колесо — масштаб";
+    cy.resize();if(changed&&selected&&syncSelection)highlight(selected);
   }
+  updateVisible();
 }
-$("#mode").onclick = e => { if (e.target.dataset.m) setMode(e.target.dataset.m); };
+$("#mode").onclick = e => { const b=e.target.closest('[data-m]');if(b) setMode(b.dataset.m); };
 $("#egoBack").onclick = () => setMode("net");
 $("#egoFit").onclick = () => egoCy && egoCy.fit(undefined, 40);
 $("#hops").onchange = $("#dir").onchange = () => egoCenter && showEgo(egoCenter);
@@ -363,17 +277,20 @@ $("#hops").onchange = $("#dir").onchange = () => egoCenter && showEgo(egoCenter)
 function selectNode(id, recenterEgo = true){
   const n = byId.get(id); if (!n) return;
   selected = id;
-  highlight(id);
+  showTab("node");
   if (mode === "net"){
+    cy.resize();highlight(id);
     const el = cy.getElementById(id);
     el.closedNeighborhood().removeClass("hide");
     const nb = el.closedNeighborhood();
-    cy.animate({fit:{eles:nb, padding:70}}, {duration:350, complete:() => { if (cy.zoom() > 1.6) cy.zoom({level:1.6, position:el.position()}); }});
+    cy.stop(true,false);
+    const capZoom=()=>{if(cy.zoom()>1.6)cy.zoom({level:1.6,position:el.position()});};
+    if(reducedMotion.matches||economy){cy.fit(nb,70);capZoom();}
+    else cy.animate({fit:{eles:nb,padding:70}},{duration:220,complete:capZoom});
   } else if (recenterEgo) showEgo(id);
   else if (egoCy){ egoCy.nodes().removeClass("sel"); egoCy.getElementById(id).addClass("sel"); }
   updateVisible();
   renderCard(n);
-  showTab("node");
   history.replaceState(null, "", "#" + id);
 }
 function comps(n){
@@ -387,10 +304,10 @@ function flowTable(list, key, title){
   if (!list.length) return `<p class="note">${title}: нет в выборке</p>`;
   const rows = [...list].sort((a, b) => b.w - a.w).slice(0, 12).map(e => {
     const o = byId.get(e[key]);
-    return `<tr class="clk" data-g="${o.id}"><td><span class="sw" style="background:${COLORS[o.r]}"></span> <span class="gid">${o.s}</span>${o.sd ? ' <span class="pill">seed</span>' : ""}</td><td>${RU[o.r]}</td><td class="num">${kzt(e.w)}</td><td class="num">${e.n}</td></tr>`;
+    return `<tr class="clk" tabindex="0" role="button" data-g="${o.id}"><td><span class="sw" style="background:${COLORS[o.r]}"></span> <span class="gid">${o.s}</span>${o.sd ? ' <span class="pill">seed</span>' : ""}</td><td>${RU[o.r]}</td><td class="num">${kzt(e.w)}</td><td class="num">${e.n}</td></tr>`;
   }).join("");
   const more = list.length > 12 ? `<tr><td colspan="4" class="note">…и ещё ${list.length - 12}</td></tr>` : "";
-  return `<h3>${title} (${list.length})</h3><table><tr><th>gid</th><th>роль</th><th class="num">сумма</th><th class="num">пер.</th></tr>${rows}${more}</table>`;
+  return `<h3>${title} (${list.length})</h3><div class="table-wrap"><table><tr><th>gid</th><th>роль</th><th class="num">сумма</th><th class="num">пер.</th></tr>${rows}${more}</table></div>`;
 }
 function timeline(n){
   const ins=new Map(),outs=new Map();
@@ -401,7 +318,7 @@ function timeline(n){
   const mx=Math.max(1,...ins.values(),...outs.values()),bw=380/days.length;
   let bars="";
   days.forEach((d,i)=>{const hi=(ins.get(d)||0)/mx*40,ho=(outs.get(d)||0)/mx*40;
-    bars+='<rect x="'+i*bw+'" y="'+(45-hi)+'" width="'+Math.max(.5,bw-1)+'" height="'+hi+'" fill="#1f77b4"><title>'+d+': вход '+(ins.get(d)||0)+'</title></rect><rect x="'+i*bw+'" y="45" width="'+Math.max(.5,bw-1)+'" height="'+ho+'" fill="#e4572e"><title>'+d+': выход '+(outs.get(d)||0)+'</title></rect>';});
+    bars+='<rect x="'+i*bw+'" y="'+(45-hi)+'" width="'+Math.max(.5,bw-1)+'" height="'+hi+'" fill="#37c8eb"><title>'+d+': вход '+(ins.get(d)||0)+'</title></rect><rect x="'+i*bw+'" y="45" width="'+Math.max(.5,bw-1)+'" height="'+ho+'" fill="#ffae75"><title>'+d+': выход '+(outs.get(d)||0)+'</title></rect>';});
   return '<h3>Даты операций: вход ↑ / выход ↓</h3><svg viewBox="0 0 380 100" width="100%">'+bars+'<text x="0" y="99" font-size="9">'+days[0]+'</text><text x="300" y="99" font-size="9">'+days.at(-1)+'</text></svg><p class="note">Показаны дни с операциями; интервалы между датами могут отличаться.</p>';
 }
 
@@ -411,12 +328,18 @@ function renderCard(n){
   const sec = n.r2 ? `<div class="note">Также выполнены правила: ${n.r2.split(";").map(r => RU[r]).join(", ")}</div>` : "";
   const trunc = n.tr ? `<div><span>Подсказка модели</span><b>${n.pf == null ? "недоступна" : n.pf.toFixed(2)}</b></div>` : "";
   const req = n.req.length ? `<h3>Каких данных не хватает</h3><ul class="note" style="padding-left:18px;margin:0">${n.req.map(r => `<li>${esc(r)}</li>`).join("")}</ul>` : "";
+  $("#t-node").scrollTop=0;
   $("#t-node").innerHTML = `
-    <div class="card-h"><div><div class="big gid">${n.s}</div><div class="gid note">${n.id}</div></div>
+    <div class="card-h"><div><div class="eyebrow">Идентификатор узла</div><div class="big gid">${n.id}</div></div>
       <div style="text-align:right">${badge(n.r)}${n.sd ? ' <span class="pill">seed</span>' : ""}<div class="note">#${n.rk} из ${DATA.nodes.length}</div></div></div>
-    <div class="ev">${esc(n.ev)}</div>${sec}
-    <div>${flags}</div>${n.tr ? '<p class="ev">Граница выгрузки: исходящие неизвестны. Модель не назначает роль.</p>' : ""}
-    <div class="grid">
+    <div class="priority-summary"><strong>${n.p.toFixed(3)}</strong><div>Приоритет проверки<span>Место ${n.rk} из ${DATA.nodes.length} · не вероятность нарушения</span></div></div>
+    <details class="evidence-details"><summary data-icon="info">Почему эта роль</summary><div class="ev">${esc(n.ev)}</div>${sec}</details>
+    <div class="grid"><div><span>Получено</span><b>${kzt(n.ink)}</b></div><div><span>Отправлено</span><b>${n.tr?"Нет данных":kzt(n.outk)}</b></div><div><span>Плательщиков</span><b>${n.ind}</b></div><div><span>Получателей</span><b>${n.outd}</b></div></div>
+    <div class="btns"><button class="btn" data-icon="network" id="bEgo">Связи узла</button><button class="btn sec icon-only" data-icon="focus" id="bNet" aria-label="Показать на общей карте">На карте</button></div>
+    <div id="nodeActions" class="btns"></div>
+    <details><summary data-icon="shield">Признаки и полнота данных</summary>${req}<div>${flags}</div></details>${n.tr ? '<p class="ev">Граница выгрузки: исходящие неизвестны. Модель не назначает роль.</p>' : ""}
+    <details><summary data-icon="rank">Паттерны активности</summary>${patternsHTML({sync_payers_max:n.sync,sync_day:n.syncd,fast_routes:n.fast_routes,repeated_routes:n.rr,n_cycles:n.cycles,n_return_cycles:n.rc,split_days:n.sp,anomaly:n.an,anomaly_feature:n.an_feature,anomaly_pct:n.an_pct},n.burst)}</details>
+    <details><summary>Все показатели и покрытие данных</summary><div class="grid detail-grid">
       <div><span>приоритет</span><b>${n.p.toFixed(3)}</b></div><div><span>соответствие роли</span><b>${n.rs.toFixed(2)}</b></div>
       <div><span>получено</span><b>${kzt(n.ink)}</b></div><div><span>выход в выгрузке</span><b>${n.tr ? "не наблюдается" : kzt(n.outk)}</b></div>
       <div><span>плательщиков</span><b>${n.ind}</b></div><div><span>получателей</span><b>${n.outd}</b></div>
@@ -427,35 +350,38 @@ function renderCard(n){
       ${trunc}<div><span>кластер</span><b class="lnk" data-cl="${n.c}">#${n.c}</b></div>
     </div>
     <p class="note">Время: ${esc({available:"доступен",no_full_window:"нет полного окна",outgoing_unobserved:"исходящие неизвестны"}[n.fast_status])}; сопоставлено ${n.matched == null ? "—" : kzt(n.matched)} из ${kzt(n.eligible)}; покрытие ${pct(n.coverage)}. Активность одного дня: ${kzt(n.same_day)} (порядок неизвестен).</p>
-    <div id="nodeActions" class="btns"></div><div class="btns"><button class="btn" id="bEgo">Связи узла (схема)</button><button class="btn sec" id="bNet">Найти на общей схеме</button></div>
-    <h3>Почему такой приоритет</h3>${comps(n)}<div class="note">Сумма ${n.raw.toFixed(6)} × seed-поправка ${n.sf} / максимум ${n.norm.toFixed(6)} = ${n.p.toFixed(4)}.${n.ind+n.outd===0 ? " Изолят: приоритет 0." : ""}</div>
+    </details><details><summary>Почему такой приоритет</summary>${comps(n)}<div class="note">Сумма ${n.raw.toFixed(6)} × seed-поправка ${n.sf} / максимум ${n.norm.toFixed(6)} = ${n.p.toFixed(4)}.${n.ind+n.outd===0 ? " Изолят: приоритет 0." : ""}</div>
     ${n.why ? `<p class="note" style="margin-top:8px">${esc(n.why)}</p>` : ""}
-    ${timeline(n)}
+    </details><details><summary>Операции по датам</summary>${timeline(n)}</details><details><summary>Переводы по контрагентам</summary>
     ${flowTable(inE.get(n.id) || [], "s", "Кто платил")}
     ${flowTable(outE.get(n.id) || [], "t", "Кому ушло")}
-    ${req}
-    ${cl ? `<h3>Кластер #${cl.cluster_id} · ${esc(cl.archetype)}</h3><p class="note">${esc(cl.hypothesis)}</p>` : ""}`;
+    </details>
+    ${cl ? `<details><summary>Группа #${cl.cluster_id} · ${esc(cl.archetype)}</summary><p class="note">${esc(cl.hypothesis)}</p></details>` : ""}`;
   addNodeActions(n);
-  $("#bEgo").onclick = () => { setMode("ego"); showEgo(n.id); };
-  $("#bNet").onclick = () => { setMode("net"); selectNode(n.id); };
+  decorateIcons($("#t-node"));
+  $("#bEgo").onclick = () => setMode("ego");
+  $("#bNet").onclick = () => { setMode("net",false); selectNode(n.id); };
   $("#t-node").querySelectorAll("tr.clk").forEach(tr => tr.onclick = () => selectNode(tr.dataset.g));
   $("#t-node").querySelectorAll("[data-cl]").forEach(b => b.onclick = () => focusCluster(+b.dataset.cl));
 }
 
 // ---------------------------------------------------------------- вкладки
 function showTab(t){
+  if(t==="ai"){setAssistantOpen(true);return;}
   [...$("#tabs").children].forEach(b => b.classList.toggle("on", b.dataset.t === t));
-  ["node","top","clusters","res","analysis","ai","method"].forEach(k => $("#t-" + k).hidden = k !== t);
+  ["node","top","clusters","res","analysis","method","export"].forEach(k => $("#t-" + k).hidden = k !== t);
+  $("#panelTitle").textContent={node:"Карточка узла",top:"Приоритет проверки",clusters:"Группы узлов",res:"Устойчивость сети",analysis:"Анализ связей",ai:"Ассистент",method:"Методика",export:"Экспорт результатов"}[t];
+  setPanelOpen(true);
 }
-$("#tabs").onclick = e => { if (e.target.dataset.t) showTab(e.target.dataset.t); };
+$("#tabs").onclick = e => { const t=e.target.closest('[data-t]')?.dataset.t;if(!t)return;if(t==="node"){setPanelOpen(false);setMode("net");}else showTab(t); };
 
 // топ
 let topRole = "all";
 function renderTop(){
   const list = ranked.filter(n => topRole === "all" || n.r === topRole).slice(0, 50);
-  const chips = ["all", ...M.roles.filter(r => r !== "peripheral")].map(r => `<button class="pill" data-tr="${r}" style="border:0;${topRole === r ? "background:#1c2330;color:#fff" : ""}">${r === "all" ? "все" : RU[r]}</button>`).join("");
-  $("#t-top").innerHTML = `<div class="note">Кого проверять первым: сортировка по priority_score. Клик — карточка узла.</div><div style="margin:8px 0">${chips}</div>
-    ${list.map(n => `<div class="trow clk" data-g="${n.id}"><div class="trh"><b class="rk">${n.rk}</b><span class="gid">${n.s}</span>${badge(n.r)}${n.sd ? "<span class='pill'>seed</span>" : ""}<span class="num" style="margin-left:auto">${n.p.toFixed(3)}</span></div><div class="note">${esc(n.ev)}</div></div>`).join("")}`;
+  const chips = ["all", ...M.roles.filter(r => r !== "peripheral")].map(r => `<button class="pill" data-tr="${r}" style="border:0;${topRole === r ? "background:#255976;color:#fff" : ""}">${r === "all" ? "все" : RU[r]}</button>`).join("");
+  $("#t-top").innerHTML = `<div class="note">Выберите узел для проверки.</div><div style="margin:8px 0">${chips}</div>
+    ${list.map(n => `<div class="trow clk" tabindex="0" role="button" data-g="${n.id}"><div class="trh"><b class="rk">${n.rk}</b><span class="gid">${n.s}</span>${badge(n.r)}${n.sd ? "<span class='pill'>seed</span>" : ""}<span class="num" style="margin-left:auto">${n.p.toFixed(3)}</span></div><div class="note preview">${esc(n.ev)}</div></div>`).join("")}`;
   $("#t-top").querySelectorAll(".clk").forEach(tr => tr.onclick = () => selectNode(tr.dataset.g));
   $("#t-top").querySelectorAll("[data-tr]").forEach(b => b.onclick = () => { topRole = b.dataset.tr; renderTop(); });
 }
@@ -467,8 +393,8 @@ function focusCluster(c){
   $("#clsel").value = c; applyFilters(); clearHL(); applyLabels();
   cy.fit(cy.nodes(":visible"), 40);
 }
-$("#t-clusters").innerHTML = `<div class="note">Louvain на неориентированной проекции (вес — log суммы), модулярность ${M.modularity}. «Устойчивость» — средний Jaccard кластера с лучшим совпадением в 10 перезапусках с другим random seed. Клик — показать кластер.</div><br>` +
-  DATA.clusters.map(c => `<div class="cl" data-c="${c.cluster_id}"><div style="display:flex;gap:8px;align-items:center"><span class="sw" style="background:${clColor(c.cluster_id)}"></span><b>#${c.cluster_id}</b><span class="pill">${esc(c.archetype)}</span><span class="note" style="margin-left:auto">${c.n_nodes} узл. · ${c.n_seed} seed · ${kzt(c.sum_kzt_internal)} · уст. ${c.stability}</span></div><p>${esc(c.hypothesis)}</p></div>`).join("");
+$("#t-clusters").innerHTML = `<div class="note">Выберите группу на карте.</div>` +
+  DATA.clusters.map(c => `<div class="cl" tabindex="0" role="button" data-c="${c.cluster_id}"><div class="cl-header"><span class="sw" style="background:${clColor(c.cluster_id)}"></span><b>#${c.cluster_id}</b><span class="pill">${esc(c.archetype)}</span><span class="cl-stats">${c.n_nodes} узл. · ${c.n_seed} seed · ${kzt(c.sum_kzt_internal)} · уст. ${c.stability}</span></div><p class="preview">${esc(c.hypothesis)}</p></div>`).join("");
 $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusCluster(+d.dataset.c));
 
 /*__ADDITIONS__*/
@@ -479,17 +405,18 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
   const top = ranked[0], cons = ranked.find(n => n.r === "consolidator" && n.ind >= 5);
   const payers = cons ? (inE.get(cons.id) || []).sort((a, b) => b.w - a.w).slice(0, 3).map(e => e.s) : [];
   const examples = [
-    payers.length ? `Кто собирает деньги с ${payers.join(", ")}?` : null,
-    `Расскажи про ${top.id}`,
-    `Как связаны ${ranked[0].id} и ${(ranked[2] || ranked[0]).id}?`,
-    cons ? `Откуда деньги у ${cons.id}?` : null,
-    "Топ-5 консолидаторов",
-    "Какие данные запросить в первую очередь?",
-  ].filter(Boolean);
-  box.innerHTML = `<div class="note" id="aiStatus">Проверяю, запущен ли сервер ассистента…</div>
-    <div class="chat" id="chat"></div>
-    <div id="exs">${examples.map(q => `<button class="ex">${esc(q)}</button>`).join("")}</div>
-    <div class="chatbox"><textarea id="aiq" placeholder="Вопрос о сети на естественном языке…"></textarea><button class="btn" id="aisend">Спросить</button></div>`;
+    {q:payers.length>1?`Кто собирает деньги с ${payers.join(", ")}?`:null,label:"Общие получатели",icon:"merge"},
+    {q:top?`Расскажи про ${top.id}`:null,label:"Справка узла",icon:"report",selected:true},
+    {q:ranked.length>1?`Как связаны ${top.id} и ${(ranked[2]||ranked[1]).id}?`:null,label:"Связь узлов",icon:"path"},
+    {q:cons?`Откуда деньги у ${cons.id}?`:null,label:"Источники",icon:"network"},
+    {q:"Топ-5 консолидаторов",label:"Топ сборщиков",icon:"rank"},
+    {q:"Какие данные запросить в первую очередь?",label:"Запросить данные",icon:"shield"},
+  ].filter(e=>e.q);
+  box.innerHTML = `<div class="chat-scroll" id="chatScroll"><div class="note" id="aiStatus">Подключение…</div>
+    <div class="chat-welcome"><h3>Что проверим?</h3><p>Связи, переводы и роли — с опорой на данные.</p></div>
+    <div id="exs">${examples.map(e => `<button class="ex" data-question="${esc(e.q)}" data-selected="${!!e.selected}" title="${e.selected?'Справка выбранного узла или первого по приоритету':esc(e.q)}">${icon(e.icon)}<span>${e.label}</span></button>`).join("")}</div>
+    <div class="chat" id="chat" aria-live="polite" aria-relevant="additions"></div></div>
+    <div class="chatbox"><textarea id="aiq" rows="2" aria-label="Вопрос ассистенту" placeholder="Спросите о связях…"></textarea><button class="btn icon-only" data-icon="send" id="aisend" aria-label="Отправить вопрос">Отправить</button></div>`;
   const history = [];
   let online = false;
   function linkify(t, allowed){
@@ -508,26 +435,28 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
     $("#chat").appendChild(d); d.scrollIntoView({block:"end"});
   }
   async function ask(q){
-    if (!q.trim()) return;
+    if (!q.trim() || $("#aisend").disabled) return;
+    $(".chat-welcome").hidden=true;$("#exs").hidden=true;
     add("u", q); $("#aiq").value = "";
     if (!online){ add("a", "Ассистент работает через локальный сервер: запустите `python serve.py` и откройте http://localhost:8000. Без ключа OpenAI он отвечает в офлайн-режиме по шаблонам вопросов."); return; }
+    if($("#aisend").disabled)return; $("#aisend").disabled=true;
     const wait = document.createElement("div"); wait.className = "msg a note"; wait.textContent = "Думаю…"; $("#chat").appendChild(wait);
     try {
-      const r = await fetch("/api/ask", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({question:q, history, run_id:M.manifest.run_id})});
-      const j = await r.json(); wait.remove(); if(!r.ok) throw Error(j.error);
+      const j=await requestJSON("/api/ask",{question:q,history,run_id:M.manifest.run_id},65000);
+      wait.remove();
       const isLLM=(j.mode||"").startsWith("LLM");
       add("a", (isLLM?"Комментарий модели; проверенные факты ниже.\n\n":"")+j.answer, j.tools && j.tools.length ? `режим: ${j.mode}; инструменты: ${j.tools.join(", ")}` : `режим: ${j.mode}`, isLLM?new Set(j.highlight_gids||[]):null);
       renderAIFacts(j);
       history.push({role:"user", content:q}, {role:"assistant", content:j.answer});
-      if (j.focus && byId.has(j.focus)) selectNode(j.focus);
-      showTab("ai");
-    } catch (e) { wait.remove(); add("a", "Ошибка запроса к серверу: " + e); }
+      if ($("#aiLauncher").getAttribute("aria-expanded")==="true" && j.focus && byId.has(j.focus)) selectNode(j.focus);
+      $("#chatScroll").scrollTop=$("#chatScroll").scrollHeight;
+    } catch (e) { wait.remove(); add("a", e.message); } finally {$("#aisend").disabled=false;}
   }
   $("#aisend").onclick = () => ask($("#aiq").value);
   $("#aiq").onkeydown = e => { if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); ask($("#aiq").value); } };
-  $("#exs").onclick = e => { if (e.target.classList.contains("ex")) ask(e.target.textContent); };
+  $("#exs").onclick = e => { const b=e.target.closest("[data-question]");if(b)ask(b.dataset.selected==="true"&&selected?"Расскажи про "+selected:b.dataset.question); };
   if (location.protocol.startsWith("http")){
-    fetch("/api/health").then(r => r.json()).then(j => { online = true; $("#aiStatus").innerHTML = j.llm ? `Подключён LLM: <b>${esc(j.model)}</b> (агент с инструментами над графом). Ответы — гипотезы со ссылками на gid.` : `Офлайн-режим: без OPENAI_API_KEY ассистент разбирает типовые вопросы по шаблонам. Для LLM: <code>OPENAI_API_KEY=… python serve.py</code>.`; })
+    requestJSON("/api/health",undefined,6000).then(j => { online = true; $("#aiStatus").innerHTML = j.llm ? `<span class="status-dot"></span>AI · ${esc(j.model)} · ответы — гипотезы` : `<span class="status-dot"></span>Локальный режим · без LLM`; })
       .catch(() => { $("#aiStatus").textContent = "Сервер ассистента не найден. Запустите: python serve.py"; });
   } else $("#aiStatus").innerHTML = "Файл открыт напрямую. Для ассистента запустите <code>python serve.py</code> и откройте http://localhost:8000 — всё остальное работает и так.";
 })();
@@ -536,8 +465,10 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
 const q = $("#q"), sugg = $("#sugg");
 let act = 0, matches = [];
 function renderSugg(){
-  sugg.hidden = !matches.length;
-  sugg.innerHTML = matches.map((n, i) => `<div data-g="${n.id}" class="${i === act ? "act" : ""}"><span class="sw" style="background:${COLORS[n.r]}"></span><span class="gid">${n.id}</span><span class="note" style="margin-left:auto">${RU[n.r]} · #${n.rk}</span></div>`).join("");
+  sugg.hidden = !q.value.trim(); q.setAttribute("aria-expanded",String(!sugg.hidden));
+  sugg.innerHTML = matches.map((n, i) => `<div id="suggest-${i}" role="option" aria-selected="${i===act}" data-g="${n.id}" class="${i === act ? "act" : ""}"><span class="sw" style="background:${COLORS[n.r]}"></span><span class="gid">${n.id}</span><span class="note" style="margin-left:auto">${RU[n.r]} · #${n.rk}</span></div>`).join("");
+  if(!matches.length && q.value.trim()) sugg.innerHTML='<div class="search-empty">Узел не найден. Проверьте ID или введите его часть.</div>';
+  if(matches[act]) q.setAttribute("aria-activedescendant","suggest-"+act); else q.removeAttribute("aria-activedescendant");
 }
 q.oninput = () => {
   const s = q.value.trim().replace(/\s/g, "");
@@ -552,12 +483,14 @@ q.onkeydown = e => {
   else if (e.key === "Escape"){ sugg.hidden = true; q.blur(); }
 };
 sugg.onclick = e => { const d = e.target.closest("[data-g]"); if (d) pick(d.dataset.g); };
-function pick(id){ sugg.hidden = true; q.value = id; selectNode(id); }
+function pick(id){ sugg.hidden = true; q.setAttribute("aria-expanded","false"); q.value = id; selectNode(id); }
 document.addEventListener("keydown", e => {
   if (e.key === "/" && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA"){ e.preventDefault(); q.focus(); q.select(); }
   if (e.key === "Escape" && document.activeElement === document.body){ clearHL(); applyLabels(); }
 });
 document.addEventListener("click", e => { if (!e.target.closest(".search")) sugg.hidden = true; });
+
+/*__WORKSPACE__*/
 
 // ссылка вида index.html#<gid> открывает карточку узла
 const h = location.hash.slice(1);

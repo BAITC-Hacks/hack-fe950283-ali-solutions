@@ -6,7 +6,7 @@
   </defs>
   <rect width="1280" height="560" fill="#ffffff"/>
   <text x="40" y="44" font-size="26" font-weight="700" fill="#141a26">Граф денег — схема решения</text>
-  <text x="40" y="70" font-size="14" fill="#667085">python run.py: полный пересчёт от сырых parquet до выгрузок и экрана — ≈4 с на ноутбуке</text>
+  <text x="40" y="70" font-size="14" fill="#667085">python run.py: сырые parquet → проверенные выгрузки и экран; локальный CPU, без внешнего LLM</text>
 
   <!-- колонки -->
   <g font-size="13" fill="#1c2330">
@@ -33,17 +33,18 @@
     <text x="360" y="160">плательщики / получатели, ₸, n_tx</text>
     <text x="360" y="182">пропуск out/in, удержание</text>
     <text x="360" y="204">seed выше по потоку (≤4 шага)</text>
-    <text x="360" y="226">деньги seed: проп. атрибуция</text>
+    <text x="360" y="226">seed: модель смешивания средств</text>
     <text x="360" y="248">PageRank по ₸, betweenness</text>
     <text x="360" y="270">связи с ключевыми узлами</text>
     <text x="360" y="304" font-weight="600">Время и паттерны</text>
-    <text x="360" y="326">транзит ≤2 дн. (FIFO)</text>
+    <text x="360" y="326">FIFO 1–2 дня; полное окно</text>
     <text x="360" y="348">синхронный сбор, дробление</text>
-    <text x="360" y="370">возвратные циклы ≤6 (по датам)</text>
+    <text x="360" y="370">циклы ≤6 и совместимость дат</text>
     <text x="360" y="392">аномалия относительно колена</text>
-    <text x="360" y="426" font-weight="600">Модель обрыва 4-го колена</text>
+    <text x="360" y="426" font-weight="600">Диагностика границы depth=4</text>
     <text x="360" y="448">логрегрессия на коленах 1–3</text>
-    <text x="360" y="470">→ P(сток), ROC-AUC 0.72</text>
+    <text x="360" y="470">подсказка, не назначение роли</text>
+    <text x="360" y="492" fill="#667085">ошибка модели не блокирует расчёт</text>
 
     <!-- 3. Роли -->
     <rect x="670" y="100" width="280" height="420" rx="12" fill="#fff4ea" stroke="#f7c79d"/>
@@ -55,13 +56,14 @@
     <circle cx="698" cy="244" r="6" fill="#1b9aaa"/><text x="712" y="249">транзит — отдал 80–120%</text>
     <circle cx="698" cy="266" r="6" fill="#8a5a44"/><text x="712" y="271">конечный — удержал ≥90%</text>
     <circle cx="698" cy="288" r="6" fill="#b8c0cc"/><text x="712" y="293">периферия — порогов нет</text>
-    <text x="690" y="324">role_score = 0.5 + 0.5 · сила признака</text>
-    <text x="690" y="358" font-weight="600">priority_score =</text>
+    <text x="690" y="324">role_score: соответствие эвристике</text>
+    <text x="690" y="358" font-weight="600">Сумма компонент приоритета:</text>
     <text x="690" y="380">0.30 роль + 0.20 связь с seed</text>
     <text x="690" y="402">+ 0.20 оборот + 0.15 сеть</text>
     <text x="690" y="424">+ 0.15 паттерны</text>
-    <text x="690" y="458" font-weight="600">Кластеры: Louvain (log ₸)</text>
-    <text x="690" y="480">+ устойчивость + гипотеза</text>
+    <text x="690" y="444">× seed_factor / normalizer</text>
+    <text x="690" y="474" font-weight="600">Кластеры: Louvain (log ₸)</text>
+    <text x="690" y="496">+ устойчивость + гипотеза</text>
 
     <!-- 4. Выход -->
     <rect x="1000" y="100" width="250" height="420" rx="12" fill="#ecfdf3" stroke="#a6e4c1"/>
@@ -76,9 +78,9 @@
     <text x="1020" y="328">карточка + «почему»</text>
     <text x="1020" y="350">устойчивость сети</text>
     <text x="1020" y="386" font-weight="600">AI-ассистент (serve.py)</text>
-    <text x="1020" y="408">LLM + 8 инструментов</text>
-    <text x="1020" y="430">над графом; офлайн-режим</text>
-    <text x="1020" y="452">без ключа</text>
+    <text x="1020" y="408">12 инструментов; факты и ссылки</text>
+    <text x="1020" y="430">локальные запросы без ключа</text>
+    <text x="1020" y="452">LLM — необязательная надстройка</text>
   </g>
 
   <g stroke="#475467" stroke-width="2.5" fill="none" marker-end="url(#a)">
@@ -86,5 +88,5 @@
     <path d="M622 310 L666 310"/>
     <path d="M952 310 L996 310"/>
   </g>
-  <text x="640" y="546" font-size="13" fill="#667085" text-anchor="middle">Каждая роль и позиция топа объясняется числами; выводы — гипотезы для проверки, а не утверждения о виновности</text>
+  <text x="640" y="546" font-size="13" fill="#667085" text-anchor="middle">Полные правила и ограничения — в README. Выводы — гипотезы для проверки; роль и приоритет объясняются числами</text>
 </svg>

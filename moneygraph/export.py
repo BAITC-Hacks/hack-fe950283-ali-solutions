@@ -10,7 +10,8 @@ NODE_EXTRA = [
     "rank", "role_secondary", "flags", "depth", "is_seed", "in_deg", "out_deg", "in_kzt", "out_kzt",
     "in_tx", "out_tx", "pass_through", "truncated", "p_forward", "seed_payers", "seed_upstream",
     "seed_kzt_in", "seed_share", "key_links", "pagerank", "betweenness", "fast_in_share",
-    "lag_median_days", "sync_payers_max", "n_return_cycles", "repeated_routes", "split_days",
+    "lag_median_days", "sync_payers_max", "sync_day", "n_cycles", "n_return_cycles", "fast_routes", "repeated_routes", "split_days",
+    "burst_in_max_tx", "burst_in_day", "burst_in_mean_daily_tx", "burst_in_ratio", "burst_observation_days", "burst_in_flag",
     "fast_status", "fast_matched_kzt", "fast_eligible_kzt", "fast_coverage", "same_day_kzt",
     "priority_raw", "priority_seed_factor", "priority_normalizer", "anomaly", "c_role", "c_seed", "c_volume", "c_network", "c_patterns",
 ]

@@ -4,6 +4,7 @@
 отдельно (spring layout), затем кластеры расставляются без перекрытий —
 так на схеме видны и связи, и группы.
 """
+import base64
 import json
 from collections import defaultdict
 from pathlib import Path
@@ -21,12 +22,12 @@ TEMPLATE = ROOT / "viewer" / "template.html"
 CYTOSCAPE = ROOT / "viewer" / "vendor" / "cytoscape.min.js"
 
 ROLE_COLORS = {
-    "coordinator": "#d7263d",
-    "consolidator": "#f28c28",
-    "distributor": "#7b4fd6",
-    "transit": "#1b9aaa",
-    "terminal": "#8a5a44",
-    "peripheral": "#b8c0cc",
+    "coordinator": "#f47bb4",
+    "consolidator": "#ffbb7b",
+    "distributor": "#b6a0ff",
+    "transit": "#35d1ef",
+    "terminal": "#72d6ac",
+    "peripheral": "#72abc7",
 }
 
 
@@ -94,19 +95,23 @@ def build(out: Path, G: nx.DiGraph, ctx: dict) -> Path:
     nodes = []
     for g, r in df.iterrows():
         nodes.append({
-            "id": str(g), "s": short(g), "r": r.role, "rs": round(r.role_score, 3), "r2": r.role_secondary,
+            "id": str(g), "s": short(g), "r": r.role, "rs": r.role_score, "r2": r.role_secondary,
             "p": round(r.priority_score, 4), "rk": int(r["rank"]), "c": int(r.cluster_id), "sd": int(r.is_seed),
             "d": int(r.depth), "x": pos[g][0], "y": pos[g][1], "ev": r.evidence,
             "why": r.why, "fl": r["flags"],
-            "ind": int(r.in_deg), "outd": int(r.out_deg), "ink": round(r.in_kzt), "outk": round(r.out_kzt),
+            "ind": int(r.in_deg), "outd": int(r.out_deg), "ink": r.in_kzt, "outk": r.out_kzt,
             "intx": int(r.in_tx), "outtx": int(r.out_tx),
-            "pt": None if pd.isna(r.pass_through) else round(r.pass_through, 3),
+            "pt": None if pd.isna(r.pass_through) else r.pass_through,
             "tr": int(r.truncated), "pf": round(r.p_forward, 3), "su": int(r.seed_upstream),
-            "sk": round(r.seed_kzt_in), "ss": round(r.seed_share, 3), "kl": int(r.key_links),
-            "bt": round(r.betweenness, 5), "fs": round(r.fast_in_share, 3),
+            "sk": r.seed_kzt_in, "ss": round(r.seed_share, 3), "kl": int(r.key_links),
+            "bt": round(r.betweenness, 5), "fs": r.fast_in_share,
             "lag": None if pd.isna(r.lag_median_days) else r.lag_median_days,
             "sync": int(r.sync_payers_max), "syncd": r.sync_day, "rc": int(r.n_return_cycles),
             "rr": int(r.repeated_routes), "sp": int(r.split_days), "an": int(r.anomaly),
+            "cycles": int(r.n_cycles), "fast_routes": int(r.fast_routes),
+            "an_feature": r.anomaly_feature, "an_pct": r.anomaly_pct,
+            "burst": {k: r[k] for k in ("burst_in_max_tx", "burst_in_day", "burst_in_mean_daily_tx",
+                       "burst_in_ratio", "burst_observation_days", "burst_in_flag")},
             "cp": [float(r[f"c_{k}"]) for k in C.PRIORITY_WEIGHTS],
             "raw": r.priority_raw, "sf": r.priority_seed_factor, "norm": r.priority_normalizer,
             "fast_status": r.fast_status, "matched": r.fast_matched_kzt, "eligible": r.fast_eligible_kzt,
@@ -137,6 +142,11 @@ def build(out: Path, G: nx.DiGraph, ctx: dict) -> Path:
     html = html.replace("/*__CYTOSCAPE__*/", CYTOSCAPE.read_text(encoding="utf-8"))
     html = html.replace("/*__DATA__*/", f"const DATA = {payload};")
     html = html.replace("/*__ADDITIONS__*/", (ROOT / "viewer" / "additions.js").read_text(encoding="utf-8"))
+    html = html.replace("/*__THEME__*/", (ROOT / "viewer" / "theme.css").read_text(encoding="utf-8"))
+    html = html.replace("/*__WORKSPACE__*/", (ROOT / "viewer" / "workspace.js").read_text(encoding="utf-8"))
+    html = html.replace("/*__ICONS__*/", (ROOT / "viewer" / "icons.js").read_text(encoding="utf-8"))
+    font = ROOT / "viewer" / "vendor" / "inter" / "InterVariable.woff2"
+    html = html.replace("__INTER_WOFF2__", base64.b64encode(font.read_bytes()).decode("ascii"))
     path = out / "index.html"
     path.write_text(html, encoding="utf-8")
     return path

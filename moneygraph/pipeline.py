@@ -47,7 +47,7 @@ def compute(data_dir: Path, log=print, period_end=None) -> dict:
         try: versions[name]=importlib.metadata.version(name)
         except importlib.metadata.PackageNotFoundError: versions[name]=None
     code_hash=hashlib.sha256(b"".join(p.read_bytes() for p in sorted(Path(__file__).parent.glob("*.py")))
-                           + viewer.TEMPLATE.read_bytes() + (viewer.ROOT/"viewer"/"additions.js").read_bytes()).hexdigest()
+                           + b"".join(p.read_bytes() for p in sorted((viewer.ROOT/"viewer").rglob("*")) if p.suffix in (".html",".js",".css",".woff2"))).hexdigest()
     run_id=hashlib.sha256((data_hash+config_hash+code_hash+json.dumps(versions,sort_keys=True)).encode()).hexdigest()[:20]
     manifest={"schema_version":C.SCHEMA_VERSION,"run_id":run_id,"data_hash":data_hash,"input_hashes":hashes,
               "config_hash":config_hash,"code_hash":code_hash,"config":config,"versions":versions,

@@ -1,0 +1,61 @@
+{
+  "tests": {
+    "status": "passed",
+    "elapsed_seconds": 45.074,
+    "returncode": 0,
+    "output_tail": "................................................................         [100%]\n64 passed in 43.93s\n"
+  },
+  "runs": [
+    {
+      "status": "passed",
+      "elapsed_seconds": 24.762,
+      "returncode": 0,
+      "output_tail": "Граф денег: полный пересчёт\n  2248 узлов; 50 кластеров; модель: available\n\nПроверка выгрузок по ТЗ:\n  OK  nodes_roles.csv: 2248 строк (нужно 2248)\n  OK  nodes_roles.csv: каждый gid ровно один раз\n  OK  обязательные колонки заполнены\n  OK  все роли из словаря ТЗ\n  OK  role_score и priority_score в [0, 1]\n  OK  evidence ≤200 символов и содержит числа\n  OK  cluster_id каждого узла есть в clusters.csv\n  OK  clusters.csv заполнен, размеры сходятся\n  OK  top_nodes.csv: 50 строк, отсортирован по приоритету\n  OK  у каждой позиции топа есть обоснование\n  OK  top: уникальные известные gid\n  OK  top совпадает с nodes_roles\n  OK  число seed в кластерах совпадает\n  OK  равные приоритеты отсортированы по gid\n\nГотово за 22.0 с. Файлы в C:\\Users\\user\\AppData\\Local\\Temp\\moneygraph-acceptance-ge3y4yjw\\a/:\n  nodes_roles.csv\n  clusters.csv\n  top_nodes.csv\n  index.html\n  report.md\n  data_requests.csv\n  resilience.csv\n\nЭкран просмотра: откройте C:\\Users\\user\\AppData\\Local\\Temp\\moneygraph-acceptance-ge3y4yjw\\a\\index.html (или `python serve.py` — с AI-ассистентом)\n",
+      "run_id": "70f951b546638c1f3a3a",
+      "timings": {
+        "compute_seconds": 15.572904699998617,
+        "pipeline_seconds": 21.947419999996782
+      }
+    },
+    {
+      "status": "passed",
+      "elapsed_seconds": 22.514,
+      "returncode": 0,
+      "output_tail": "Граф денег: полный пересчёт\n  2248 узлов; 50 кластеров; модель: available\n\nПроверка выгрузок по ТЗ:\n  OK  nodes_roles.csv: 2248 строк (нужно 2248)\n  OK  nodes_roles.csv: каждый gid ровно один раз\n  OK  обязательные колонки заполнены\n  OK  все роли из словаря ТЗ\n  OK  role_score и priority_score в [0, 1]\n  OK  evidence ≤200 символов и содержит числа\n  OK  cluster_id каждого узла есть в clusters.csv\n  OK  clusters.csv заполнен, размеры сходятся\n  OK  top_nodes.csv: 50 строк, отсортирован по приоритету\n  OK  у каждой позиции топа есть обоснование\n  OK  top: уникальные известные gid\n  OK  top совпадает с nodes_roles\n  OK  число seed в кластерах совпадает\n  OK  равные приоритеты отсортированы по gid\n\nГотово за 20.2 с. Файлы в C:\\Users\\user\\AppData\\Local\\Temp\\moneygraph-acceptance-ge3y4yjw\\b/:\n  nodes_roles.csv\n  clusters.csv\n  top_nodes.csv\n  index.html\n  report.md\n  data_requests.csv\n  resilience.csv\n\nЭкран просмотра: откройте C:\\Users\\user\\AppData\\Local\\Temp\\moneygraph-acceptance-ge3y4yjw\\b\\index.html (или `python serve.py` — с AI-ассистентом)\n",
+      "run_id": "70f951b546638c1f3a3a",
+      "timings": {
+        "compute_seconds": 14.37871069999892,
+        "pipeline_seconds": 20.229748099998687
+      }
+    }
+  ],
+  "csv": {
+    "nodes_roles.csv": {
+      "identical": true,
+      "sha256": "b2676ac679a335c85bcacfce2ed1f05039d83a3d2b53110dd1f6c5aa7a7828c9"
+    },
+    "clusters.csv": {
+      "identical": true,
+      "sha256": "d36ee3444d0d936b339e543a1e1d3b4ccba1089dcfd859a97282b0a537e08bc6"
+    },
+    "top_nodes.csv": {
+      "identical": true,
+      "sha256": "1dd0612ab240836a3dfbef0358ea98d4944e477b01863e706c0dfcc0dbe6d021"
+    },
+    "data_requests.csv": {
+      "identical": true,
+      "sha256": "c03cd6379cd4d00e49b6d3719defd66ff834364982ba9a392f245607ae63cac2"
+    },
+    "resilience.csv": {
+      "identical": true,
+      "sha256": "c49b84ce1833f2d81b41ec94659aa73c78dd6949f4a988f81d627c1772f40fd3"
+    }
+  },
+  "same_run_id": true,
+  "under_300_seconds": true,
+  "passed": true,
+  "published_output": {
+    "run_id": "70f951b546638c1f3a3a",
+    "five_csv_match": true
+  }
+}
