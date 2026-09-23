@@ -19,9 +19,13 @@
 Нужен Python ≥ 3.10. Интернет не требуется (только для опционального LLM).
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python run.py            # data/*.parquet → out/  (≈4 с)
+python run.py                      # data/*.parquet → out/  (≈4 с)
 ```
+
+Все команды ниже выполняются внутри активированного окружения: в нём есть `python`. На macOS без окружения команды `python` нет — только `python3`, и без зависимостей.
 
 Потом откройте `out/index.html` в браузере — это один самодостаточный файл, Cytoscape.js вшит в него, работает офлайн.
 
