@@ -247,7 +247,7 @@ var Yr=function(e){if(!(this instanceof Yr))return new Yr(e);this.id="Thenable/1
       if (!record || typeof record.gid !== "string" || !knownIds.has(record.gid)) continue;
       records.set(record.gid, {
         gid: record.gid,
-        status: Object.hasOwn(statuses, record.status) ? record.status : "new",
+        status: Object.prototype.hasOwnProperty.call(statuses, record.status) ? record.status : "new",
         note: typeof record.note === "string" ? record.note.slice(0, 2000) : "",
       });
     }
@@ -315,18 +315,19 @@ function downloadFile(filename, content, type = "text/plain;charset=utf-8"){
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 function saveReview(refresh = true){
+  let saved = true;
   try { localStorage.setItem(storageKey, JSON.stringify([...review.values()])); }
-  catch { notify("Не удалось сохранить в браузере. Скачайте JSON, чтобы не потерять заметки."); }
+  catch { saved = false; notify("Не удалось сохранить в браузере. Скачайте JSON, чтобы не потерять заметки."); }
   $("#reviewCount").textContent = review.size;
   if (refresh){ renderReview(); renderTop(); }
   const button = $("#bReview");
   if (button) button.textContent = review.has(selected) ? "✓ В списке проверки" : "+ На проверку";
+  return saved;
 }
 function toggleReview(id){
   if (review.has(id)) review.delete(id);
   else review.set(id, {gid:id, status:"new", note:""});
-  saveReview();
-  notify(review.has(id) ? "Клиент добавлен в список проверки" : "Клиент убран из списка проверки");
+  if (saveReview()) notify(review.has(id) ? "Клиент добавлен в список проверки" : "Клиент убран из списка проверки");
 }
 function renderReview(){
   const records = [...review.values()].sort((first, second) => byId.get(first.gid).rk - byId.get(second.gid).rk);
@@ -359,7 +360,7 @@ function renderReview(){
       if (payload.dataset_id !== M.dataset_id) throw new Error("Этот список относится к другой выгрузке");
       const imported = Review.restore(JSON.stringify(payload.records), new Set(byId.keys()));
       imported.forEach((record, id) => review.set(id, record));
-      saveReview(); notify(`Загружено клиентов: ${imported.size}`);
+      if (saveReview()) notify(`Загружено клиентов: ${imported.size}`);
     } catch (error){ notify("Не удалось загрузить список: " + error.message); }
   };
 }
@@ -388,6 +389,7 @@ const baseStyle = [
   {selector:"edge.eout", style:{"line-color":"#e4572e","target-arrow-color":"#e4572e","opacity":0.95,"z-index":9}},
   {selector:"node.sel", style:{"border-width":4,"border-color":"#1f5eff","border-style":"solid","z-index":10}},
   {selector:"node.nb", style:{"z-index":8}},
+  {selector:"node.ctx", style:{"opacity":0.55}},
   {selector:".hide", style:{"display":"none"}},
 ];
 const cy = cytoscape({container:$("#cy"), elements:elementsFor(DATA.nodes, true), layout:{name:"preset"}, style:baseStyle,
@@ -426,7 +428,7 @@ function highlight(id){
   applyLabels();
 }
 cy.on("tap", "node", ev => selectNode(ev.target.id(), false));
-cy.on("tap", ev => { if (ev.target === cy){ clearHL(); applyLabels(); } });
+cy.on("tap", ev => { if (ev.target === cy){ applyFilters(); clearHL(); applyLabels(); } });
 
 // ---------------------------------------------------------------- filters
 const roleOn = new Set(M.roles);
@@ -452,7 +454,7 @@ function applyFilters(){
     cy.nodes().forEach(el => {
       const n = byId.get(el.id());
       const vis = roleOn.has(n.r) && (cl < 0 || n.c === cl) && (!topn || n.rk <= topn) && (!seedOnly || seedNb.has(n.id));
-      el.toggleClass("hide", !vis);
+      el.removeClass("ctx").toggleClass("hide", !vis);
     });
   });
   const visible = cy.nodes().not(".hide").length;
@@ -550,17 +552,24 @@ $("#hops").onchange = $("#dir").onchange = () => egoCenter && showEgo(egoCenter)
 function selectNode(id, recenterEgo = true){
   const n = byId.get(id); if (!n) return;
   selected = id;
-  highlight(id);
   if (mode === "net"){
     const el = cy.getElementById(id);
-    if (el.closedNeighborhood("node").some(node => node.hasClass("hide"))){
-      resetFilters(); highlight(id); notify("Фильтры сброшены, чтобы показать узел и его связи");
+    applyFilters();  // убирает временно показанных соседей прошлого выбора
+    if (el.hasClass("hide")){
+      resetFilters(); notify("Клиент не входит в текущий фильтр — фильтры сброшены");
+    } else {
+      const outside = el.closedNeighborhood("node").filter(".hide");
+      if (outside.length){ outside.removeClass("hide").addClass("ctx"); notify(`Фильтр сохранён; показаны связи вне него: ${outside.length}`); }
     }
+    highlight(id);
     const nb = el.closedNeighborhood();
     cy.fit(nb, 70);
     if (cy.zoom() > 1.6) cy.zoom({level:1.6, position:el.position()});
-  } else if (recenterEgo) showEgo(id);
-  else if (egoCy){ egoCy.nodes().removeClass("sel"); egoCy.getElementById(id).addClass("sel"); }
+  } else {
+    highlight(id);
+    if (recenterEgo) showEgo(id);
+    else if (egoCy){ egoCy.nodes().removeClass("sel"); egoCy.getElementById(id).addClass("sel"); }
+  }
   renderCard(n);
   showTab("node");
   history.replaceState(null, "", "#" + id);
@@ -776,7 +785,7 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
     pending = true; $("#aisend").disabled = true;
     const wait = document.createElement("div"); wait.className = "msg a note"; wait.textContent = "Думаю…"; $("#chat").appendChild(wait);
     try {
-      const recent = history.slice(-2).map(message => ({role:message.role, content:message.content.slice(0,1000)}));
+      const recent = history.slice(-6).map(message => ({role:message.role, content:message.content.slice(0,1500)}));
       const r = await fetch("/api/ask", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({question:q, history:recent})});
       const j = await r.json();
       if (!r.ok || typeof j.answer !== "string") throw new Error(j.error || "Некорректный ответ сервера");
@@ -825,7 +834,7 @@ function hideSuggestions(){ sugg.hidden = true; q.setAttribute("aria-expanded", 
 function pick(id){ hideSuggestions(); q.value = id; selectNode(id); }
 document.addEventListener("keydown", e => {
   if (e.key === "/" && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA"){ e.preventDefault(); q.focus(); q.select(); }
-  if (e.key === "Escape" && document.activeElement === document.body){ clearHL(); applyLabels(); }
+  if (e.key === "Escape" && document.activeElement === document.body){ applyFilters(); clearHL(); applyLabels(); }
 });
 document.addEventListener("click", e => { if (!e.target.closest(".search")) hideSuggestions(); });
 new ResizeObserver(() => {

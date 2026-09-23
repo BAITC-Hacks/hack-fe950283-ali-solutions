@@ -108,8 +108,9 @@ def build(out: Path, G: nx.DiGraph, ctx: dict) -> Path:
             "cp": [round(r[f"c_{k}"], 3) for k in C.PRIORITY_WEIGHTS], "req": req.get(g, []),
         })
     txs = defaultdict(list)
+    start = ctx["tx"].date.min().normalize()
     for t in ctx["tx"].itertuples(index=False):
-        day = (t.date.normalize() - ctx["tx"].date.min().normalize()).days + 1
+        day = (t.date.normalize() - start).days + 1
         txs[(t.src, t.dst)].append([day, round(float(t.sum_kzt), 2)])
     edges = [{"s": str(u), "t": str(v), "w": round(d["sum_kzt"]), "n": d["n_tx"], "tx": sorted(txs[(u, v)])}
              for u, v, d in G.edges(data=True)]

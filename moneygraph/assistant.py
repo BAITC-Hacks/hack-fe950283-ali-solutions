@@ -25,14 +25,18 @@ ROLE_WORDS = {
     "транзит": "transit", "конечн": "terminal", "терминал": "terminal", "периферия": "peripheral",
 }
 
-SYSTEM_PROMPT = f"""Ты — ассистент AML-аналитика банка. Отвечаешь на вопросы о графе внутрибанковских переводов
-(июль 2026, 2 248 клиентов, 81 seed — клиенты из списка правоохранительных органов). Роли узлов: {", ".join(C.ROLES)}.
+def system_prompt(stats: dict) -> str:
+    """Период и размеры сети берутся из данных, а не зашиты в текст."""
+    threshold = f"{C.MIN_TX_KZT:,}".replace(",", " ")
+    return f"""Ты — ассистент AML-аналитика банка. Отвечаешь на вопросы о графе внутрибанковских переводов
+(период {stats["date_min"]} — {stats["date_max"]}, {stats["n_nodes"]} клиентов, {stats["n_seed"]} seed — клиенты из списка
+правоохранительных органов). Роли узлов: {", ".join(C.ROLES)}.
 Правила:
 - Все факты бери ТОЛЬКО из инструментов. Не выдумывай gid, суммы и связи.
 - Называй узлы полным 18-значным gid, суммы — в тенге.
 - Формулируй выводы как признаки и гипотезы для проверки («признаки консолидации»), а не как утверждения о виновности.
-- Учитывай ограничения выгрузки: только исходящие переводы от seed на 4 колена, у 4-го колена исходящие не выгружены,
-  переводы < 5 000 ₸ не видны, вход seed занижен.
+- Учитывай ограничения выгрузки: только исходящие переводы от seed на {C.MAX_DEPTH} колена, у {C.MAX_DEPTH}-го колена
+  исходящие не выгружены, переводы < {threshold} ₸ не видны, вход seed занижен.
 - Отвечай по-русски, кратко: 3–8 пунктов, в конце — что проверить дальше."""
 
 
@@ -199,6 +203,7 @@ def _tool_schema():
 class Assistant:
     def __init__(self, ctx: dict):
         self.tools = GraphTools(ctx)
+        self.system_prompt = system_prompt(ctx["stats"])
         self.api_key = os.environ.get("OPENAI_API_KEY", "")
         self.model = os.environ.get("OPENAI_MODEL", "gpt-5.4")
         self.base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
@@ -234,7 +239,7 @@ class Assistant:
             return json.loads(r.read())
 
     def _ask_llm(self, question, history):
-        msgs = [{"role": "system", "content": SYSTEM_PROMPT}] + history[-6:] + [{"role": "user", "content": question}]
+        msgs = [{"role": "system", "content": self.system_prompt}] + history[-6:] + [{"role": "user", "content": question}]
         used = []
         for _ in range(8):
             resp = self._post({"model": self.model, "messages": msgs, "tools": _tool_schema(), "tool_choice": "auto"})
@@ -255,7 +260,7 @@ class Assistant:
     # ---------------------------------------------------------------- офлайн
     def _gids(self, q):
         found = []
-        for m in re.findall(r"\d{18}|\d{8}", q):
+        for m in re.findall(r"\b(?:\d{18}|\d{8})\b", q):
             g = self.tools.resolve(m)
             if g is not None and g not in found:
                 found.append(g)
@@ -263,7 +268,8 @@ class Assistant:
 
     def _ask_offline(self, q):
         T, ql, gids = self.tools, q.lower(), self._gids(q)
-        unknown = [identifier for identifier in re.findall(r"\b(?:\d{18}|\d{8})\b", q) if T.resolve(identifier) is None]
+        # неизвестным считаем только полный 18-значный gid: 8 цифр могут быть суммой («больше 10000000»)
+        unknown = [identifier for identifier in re.findall(r"\b\d{18}\b", q) if T.resolve(identifier) is None]
         if unknown:
             return {"answer": "Не удалось однозначно найти gid: " + ", ".join(unknown) + ". Проверьте полный идентификатор.",
                     "mode": "офлайн (шаблоны)", "tools": [], "focus": None}

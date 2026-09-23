@@ -16,7 +16,7 @@ from urllib.parse import urlsplit
 from moneygraph import pipeline
 from moneygraph.assistant import Assistant
 
-MAX_BODY_BYTES = 16_384
+MAX_BODY_BYTES = 65_536  # вопрос + до 6 сообщений истории в UTF-8 (кириллица — 2 байта)
 
 
 def make_handler(bot, out_dir):

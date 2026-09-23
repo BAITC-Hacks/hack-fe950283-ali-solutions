@@ -41,6 +41,18 @@ def test_unknown_gid_is_not_silently_replaced_by_network_summary(ctx, monkeypatc
     assert result["tools"] == [] and result["focus"] is None
 
 
+def test_eight_digit_amount_is_not_reported_as_unknown_gid(ctx, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    result = Assistant(ctx).ask("Топ-5 консолидаторов с оборотом больше 10000000")
+    assert "Не удалось" not in result["answer"] and result["tools"] == ["top_nodes"]
+
+
+def test_system_prompt_describes_loaded_data(ctx):
+    prompt = Assistant(ctx).system_prompt
+    stats = ctx["stats"]
+    assert stats["date_min"] in prompt and f"{stats['n_nodes']} клиентов" in prompt
+
+
 def test_duplicate_sources_do_not_invent_a_common_recipient(ctx):
     bot = Assistant(ctx)
     identifier = str(ctx["df"].index[0])

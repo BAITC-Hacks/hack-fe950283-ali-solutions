@@ -18,18 +18,18 @@
 
 ## Быстрый старт
 
-Для точного воспроизведения проверено окружение Python **3.13** с `requirements.lock`. Расчёт и интерфейс работают без интернета после установки зависимостей; внешний LLM опционален.
+Нужен Python **3.11+**. Проверено на 3.11, 3.13 и 3.14: три обязательные CSV совпадают побайтово. Расчёт и интерфейс работают без интернета после установки зависимостей; внешний LLM опционален.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.lock
+pip install -r requirements.txt
 python run.py                      # data/*.parquet → out/  (≈4 с)
 ```
 
 Все команды ниже выполняются внутри активированного окружения: в нём есть `python`. На macOS без окружения команды `python` нет — только `python3`, и без зависимостей.
 
-Для другой поддерживаемой версии Python можно установить диапазоны зависимостей из `requirements.txt`, но точные версии и результаты кластеризации могут отличаться. Для жюри используйте зафиксированное окружение. Пересчёт другой выгрузки той же схемы: `python run.py --data /путь/к/parquet --out out-new`. Загрузка выполняется через CLI; веб-загрузка файлов не требуется для основного сценария.
+Точные версии проверенного окружения — в `requirements.lock` (`pip install -r requirements.lock`). Он требует Python 3.12+: закреплённый в нём `networkx 3.7` не ставится на 3.11. Пересчёт другой выгрузки той же схемы: `python run.py --data /путь/к/parquet --out out-new`. Загрузка выполняется через CLI; веб-загрузка файлов не требуется для основного сценария.
 
 Потом откройте `out/index.html` в браузере — это один самодостаточный файл, Cytoscape.js вшит в него, работает офлайн.
 
@@ -45,7 +45,7 @@ OPENAI_BASE_URL=http://localhost:11434/v1 OPENAI_API_KEY=x OPENAI_MODEL=qwen2.5 
 Тесты (схема выгрузок, соответствие ролей правилам, отсутствие захардкоженных gid, цикл LLM-агента):
 
 ```bash
-pip install -r requirements-dev.txt
+pip install -r requirements-dev.txt            # Python 3.12+; на 3.11: pip install -r requirements.txt pytest
 python -m pytest -q                            # 49 тестов
 node --test tests/test_review.cjs               # 4 теста; Node.js 22, только для разработки
 ```
@@ -315,7 +315,7 @@ moneygraph/
   assistant.py         инструменты над графом, LLM-агент, офлайн-режим
 viewer/template.html   интерфейс; viewer/vendor/cytoscape.min.js (MIT)
 viewer/review.js       сохранение списка проверки и безопасный экспорт CSV
-requirements.lock     точные версии проверенного окружения Python 3.13
+requirements.lock     точные версии проверенного окружения (Python 3.12+)
 tests/                 pytest: must-have ТЗ, правила ролей, ассистент
 docs/                  схема решения, скриншоты
 data/                  исходные parquet + README датасета

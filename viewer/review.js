@@ -10,7 +10,7 @@
       if (!record || typeof record.gid !== "string" || !knownIds.has(record.gid)) continue;
       records.set(record.gid, {
         gid: record.gid,
-        status: Object.hasOwn(statuses, record.status) ? record.status : "new",
+        status: Object.prototype.hasOwnProperty.call(statuses, record.status) ? record.status : "new",
         note: typeof record.note === "string" ? record.note.slice(0, 2000) : "",
       });
     }
