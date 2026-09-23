@@ -20,13 +20,13 @@ TEMPLATE = ROOT / "viewer" / "template.html"
 CYTOSCAPE = ROOT / "viewer" / "vendor" / "cytoscape.min.js"
 REVIEW = ROOT / "viewer" / "review.js"
 
-ROLE_COLORS = {
-    "coordinator": "#d7263d",
-    "consolidator": "#f28c28",
-    "distributor": "#7b4fd6",
-    "transit": "#1b9aaa",
-    "terminal": "#8a5a44",
-    "peripheral": "#b8c0cc",
+ROLE_COLORS = {  # тёмная тема экрана: пастельные цвета на тёмно-синем фоне
+    "coordinator": "#f25f73",
+    "consolidator": "#e45dbf",
+    "distributor": "#3fa3ec",
+    "transit": "#34d3a1",
+    "terminal": "#f4c95d",
+    "peripheral": "#aebdd3",
 }
 
 

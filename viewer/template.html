@@ -6,200 +6,265 @@
 <title>Граф денег — AML</title>
 <style>
 :root{
-  --bg:#f4f5f7; --panel:#ffffff; --ink:#1c2330; --muted:#667085; --line:#e3e6eb; --accent:#1f5eff;
-  --in:#1f77b4; --out:#e4572e; --chip:#eef1f5; --warn:#b54708; --ok:#067647;
+  --rail:#151b27; --side:#212938; --stage:#1b2230; --card:#273143; --card2:#2d384c;
+  --ink:#e8edf4; --soft:#c3cedd; --muted:#8e9bb0; --line:#2f3a4c; --line2:#3a4659;
+  --accent:#4aa8ff; --in:#4aa8ff; --out:#ff8a5b; --chip:#2c3749; --ok:#34d3a1; --warn:#f4c95d; --danger:#f25f73;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-size:13px}
-button{font:inherit;cursor:pointer}
-#app{display:grid;grid-template-columns:220px minmax(0,1fr) 450px;grid-template-rows:64px minmax(0,1fr);height:100vh}
-header{grid-column:1/4;display:flex;align-items:center;gap:18px;padding:0 16px;background:#141a26;color:#fff}
-.brand{font-weight:700;font-size:16px;white-space:nowrap}
-.brand small{font-weight:400;color:#9aa4b2;margin-left:6px;font-size:12px}
-#stats{display:flex;gap:16px;color:#c9d1dd;font-size:12px;white-space:nowrap;overflow:hidden}
-#stats b{color:#fff}
-.search{margin-left:auto;position:relative;width:340px;min-width:230px}
-.search input{width:100%;padding:8px 10px;border-radius:6px;border:1px solid #2d3748;background:#1f2736;color:#fff;font-size:13px}
-.search input::placeholder{color:#8a94a6}
-#sugg{position:absolute;top:38px;left:0;right:0;background:#fff;color:var(--ink);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:20;max-height:360px;overflow:auto}
-#sugg div{padding:7px 10px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--line)}
-#sugg div:hover,#sugg div.act{background:#eef3ff}
-aside{background:var(--panel);overflow:auto}
-#left{border-right:1px solid var(--line);padding:12px}
-#right{border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
-h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 8px}
-h3:first-child{margin-top:0}
-.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
-.seg button{flex:1;padding:6px 4px;border:0;background:#fff;color:var(--ink)}
-.seg button.on{background:var(--ink);color:#fff}
-.rolef label{display:grid;grid-template-columns:14px 12px minmax(0,1fr) auto;align-items:center;gap:6px;padding:4px 0;cursor:pointer}
-.rolef input{margin:0}
-.rolef .role-name{overflow-wrap:anywhere;min-width:0}
-.sw{width:12px;height:12px;border-radius:50%;display:inline-block;flex:none}
-.rolef .cnt{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
-select,input[type=number]{width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;background:#fff;font:inherit}
-.row{display:flex;gap:8px;align-items:center;margin:6px 0}
-.legend{font-size:12px;color:var(--muted);line-height:1.7}
-.legend i{display:inline-block;vertical-align:middle;margin-right:6px}
-main{position:relative;min-width:0}
-#cy,#cyEgo{position:absolute;inset:0}
-#cyEgo{background:#fbfbfc}
-.toolbar{position:absolute;top:10px;left:10px;display:flex;gap:6px;z-index:5;flex-wrap:wrap}
-.toolbar button,.toolbar select{background:#fff;border:1px solid var(--line);border-radius:6px;padding:5px 9px;box-shadow:0 1px 2px rgba(0,0,0,.05);width:auto}
-.hint{position:absolute;bottom:10px;left:10px;background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:6px;padding:6px 10px;color:var(--muted);font-size:12px;z-index:5;max-width:70%}
-.tabs{display:flex;border-bottom:1px solid var(--line);flex:none;flex-wrap:wrap}
-.tabs button{flex:1;padding:10px 6px;border:0;background:none;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
-.tabs button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
-.tab{padding:14px;overflow:auto;flex:1;min-height:0}
-.empty{color:var(--muted);text-align:center;margin-top:40px;line-height:1.6}
-.badge{display:inline-block;padding:2px 8px;border-radius:10px;color:#fff;font-size:11px;font-weight:600}
-.pill{display:inline-block;padding:2px 7px;border-radius:10px;background:var(--chip);color:var(--ink);font-size:11px;margin:2px 3px 2px 0}
-.pill.warn{background:#fef0c7;color:#93370d}
-.gid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+html,body{margin:0;height:100%;background:var(--stage);color:var(--ink);font-size:13px}
+button{font:inherit;cursor:pointer;color:inherit}
+button:active{transform:scale(.98)}
+button:disabled{cursor:default;opacity:.5}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#344055;border-radius:6px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-track{background:transparent}
+
+#app{display:grid;grid-template-columns:60px 332px minmax(0,1fr);height:100vh}
+
+/* ---------- вертикальная панель разделов */
+#rail{background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:10px;border-right:1px solid #0f141d}
+.logo{width:34px;height:34px;border-radius:50%;background:#f4f6f9;display:grid;place-items:center;color:#151b27;flex:none}
+#tabs{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+#tabs button{position:relative;width:42px;height:42px;border:0;border-radius:10px;background:none;color:#7d8aa0;display:grid;place-items:center}
+#tabs button:hover{color:var(--ink);background:#1d2533}
+#tabs button.on{color:#fff;background:#253049}
+#tabs button.on::before{content:"";position:absolute;left:-9px;top:10px;bottom:10px;width:3px;border-radius:2px;background:var(--accent)}
+#tabs .count{position:absolute;top:3px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;line-height:16px}
+#tabs .count:empty,#tabs .count[data-zero]{display:none}
+
+/* ---------- боковая панель */
+#side{background:var(--side);overflow-y:auto;overflow-x:hidden;border-right:1px solid var(--line);min-height:0}
+.tab{padding:22px 20px 30px}
+.brand{margin-bottom:6px}
+.brand b{display:block;font-size:17px;letter-spacing:.01em}
+.brand span{color:var(--muted);font-size:12px}
+h3{display:flex;align-items:center;gap:9px;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:#d6dfeb;font-weight:700;margin:24px 0 10px}
+h3::before{content:"";width:8px;height:8px;border:1.6px solid #8e9bb0;transform:rotate(45deg);border-radius:1px;flex:none}
+.tab>h3:first-child{margin-top:4px}
+.note{font-size:12px;color:var(--muted);line-height:1.55;margin:6px 0}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:16px 10px;margin:14px 0 4px}
+.stat{display:flex;gap:10px;align-items:flex-start;min-width:0}
+.stat.wide{grid-column:1/-1}
+.ico{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:none;margin-top:1px}
+.stat>span:last-child{min-width:0}
+.stat small{display:block;font-size:10px;letter-spacing:.045em;text-transform:uppercase;color:#aab6c8;font-weight:700;line-height:1.35}
+.stat b{display:block;font-size:17px;margin-top:3px;font-variant-numeric:tabular-nums;color:#fff;font-weight:700;white-space:nowrap}
+.stat.wide b{font-size:14px}
+.roles .stat{background:none;border:0;text-align:left;padding:6px;margin:-6px;border-radius:8px}
+.roles .stat:hover{background:#28324a}
+.roles .stat[aria-pressed="false"]{opacity:.35}
+.roles .stat[aria-pressed="false"] b{text-decoration:line-through}
+.fld{display:block;color:var(--muted);font-size:12px;margin:12px 0 5px}
+select,textarea,input[type=number]{width:100%;padding:7px 8px;border:1px solid var(--line2);border-radius:6px;background:#1a2130;color:var(--ink);font:inherit}
+.chk{display:flex;gap:8px;align-items:center;margin:12px 0 4px;color:var(--soft);cursor:pointer}
+.row{display:flex;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap}
+#filterSummary{color:var(--muted);font-size:12px}
+.seg{display:flex;border:1px solid var(--line2);border-radius:7px;overflow:hidden;background:#1a2130}
+.seg button{flex:1;padding:6px 10px;border:0;background:none;color:var(--soft);white-space:nowrap}
+.seg button.on{background:#34405a;color:#fff}
+.legend{font-size:12px;color:var(--muted);line-height:1.9}
+.legend i{display:inline-block;vertical-align:middle;margin-right:8px}
+.download-list{display:grid;gap:6px}
+.download-list button{text-align:left;font-size:12px;padding:8px 10px}
+.statusline{font-size:11px;color:#6f7c92;line-height:1.5;margin-top:12px}
+
+/* ---------- поиск и сцена */
+main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.searchbar{padding:8px 28px 14px;border-bottom:1px solid var(--line);background:var(--stage)}
+.qmodes{display:flex;justify-content:center;gap:22px;margin-bottom:8px}
+.qmodes button{background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:4px 2px;font-size:13px}
+.qmodes button.on{color:#fff;border-bottom-color:#fff}
+.search{position:relative;max-width:1040px;margin:0 auto}
+.search input{width:100%;height:44px;padding:0 46px 0 16px;border-radius:4px;border:0;background:#f4f6f9;color:#1a2230;font-size:15px}
+.search input::placeholder{color:#8e9bb0}
+.search .sicon{position:absolute;right:14px;top:12px;color:#8e9bb0;pointer-events:none}
+#sugg{position:absolute;top:50px;left:0;right:0;background:var(--card);border:1px solid var(--line2);border-radius:8px;box-shadow:0 14px 34px rgba(0,0,0,.45);z-index:30;max-height:380px;overflow:auto}
+#sugg div{padding:9px 12px;cursor:pointer;display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--line)}
+#sugg div:hover,#sugg div.act{background:#33405a}
+#stage{position:relative;flex:1;min-height:0;background:var(--stage)}
+#cy,#cyEgo{position:absolute;inset:0;background:var(--stage)}
+.toolbar{position:absolute;top:12px;left:14px;display:flex;gap:8px;z-index:6;flex-wrap:wrap;align-items:center}
+.toolbar>span{display:flex;gap:8px;flex-wrap:wrap}
+.toolbar>span button,.toolbar select{background:rgba(33,41,56,.94);border:1px solid var(--line2);border-radius:7px;padding:6px 10px;width:auto;color:var(--ink)}
+.hint{position:absolute;bottom:12px;left:14px;background:rgba(21,27,39,.9);border:1px solid var(--line);border-radius:7px;padding:7px 11px;color:var(--muted);font-size:12px;z-index:5;max-width:min(62%,720px);line-height:1.45}
+#emptyGraph{position:absolute;top:32%;left:50%;transform:translateX(-50%);width:min(420px,80%);text-align:center;background:var(--side);border:1px solid var(--line2);padding:20px;border-radius:10px;z-index:6}
+
+/* ---------- карточка клиента */
+#drawer{position:absolute;top:12px;right:12px;bottom:12px;width:430px;max-width:calc(100% - 24px);background:var(--side);border:1px solid var(--line2);border-radius:12px;box-shadow:0 20px 44px rgba(0,0,0,.5);display:flex;flex-direction:column;z-index:8;overflow:hidden}
+#drawer>header{display:flex;align-items:flex-start;gap:10px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--line);background:#1e2635}
+.caution{font-size:11px;color:#d9c48c;line-height:1.45;flex:1}
+.iconbtn{flex:none;width:30px;height:30px;border-radius:7px;border:1px solid var(--line2);background:none;display:grid;place-items:center;color:var(--soft)}
+.iconbtn:hover{border-color:var(--accent);color:#fff}
+#t-node{overflow:auto;padding:16px 18px 26px;flex:1;min-height:0}
 .card-h{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
-.card-h .big{font-size:18px;font-weight:700}
-.ev{background:#f8fafc;border-left:3px solid var(--accent);padding:8px 10px;margin:10px 0;line-height:1.45}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin:8px 0}
-.grid div{display:flex;justify-content:space-between;gap:6px;min-width:0;border-bottom:1px dashed var(--line);padding:3px 0}
-.grid b{text-align:right;overflow-wrap:normal;flex-shrink:0;max-width:60%}
+.card-h .big{font-size:20px;font-weight:700;color:#fff}
+.ev{background:#1a2130;border-left:3px solid var(--accent);padding:9px 11px;margin:12px 0;line-height:1.5;color:var(--ink);border-radius:0 6px 6px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin:10px 0}
+.grid div{display:flex;justify-content:space-between;gap:6px;min-width:0;border-bottom:1px dashed var(--line);padding:4px 0}
+.grid b{text-align:right;flex-shrink:0;max-width:60%;color:#fff}
 .grid span:first-child{color:var(--muted)}
-.bar{height:8px;background:var(--chip);border-radius:4px;overflow:hidden;flex:1}
-.bar i{display:block;height:100%;background:var(--accent)}
-.comp{display:flex;align-items:center;gap:8px;margin:4px 0}
+.bar{height:8px;background:#1a2130;border-radius:4px;overflow:hidden;flex:1}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#3d8eea,#6cc0ff)}
+.comp{display:flex;align-items:center;gap:8px;margin:5px 0}
 .comp span:first-child{width:150px;color:var(--muted)}
 .comp span:last-child{width:44px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- общие элементы */
+.sw{width:11px;height:11px;border-radius:50%;display:inline-block;flex:none}
+.badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;background:var(--chip);color:#d4dcea;font-size:11px;margin:2px 3px 2px 0;border:0}
+.pill.warn{background:#4a3b16;color:#f4d27f}
+.gid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
 table{border-collapse:collapse;width:100%}
-td,th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+td,th{padding:6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 th{color:var(--muted);font-weight:600;font-size:11px}
 tr.clk{cursor:pointer}
-tr.clk:hover{background:#f5f8ff}
+tr.clk:hover{background:#2a354a}
 .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.btns{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
-.btn{background:var(--ink);color:#fff;border:0;border-radius:6px;padding:6px 10px}
-.btn.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
-.cl{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.btn{background:var(--accent);color:#08111f;border:0;border-radius:7px;padding:7px 12px;font-weight:700}
+.btn:hover{background:#6db9ff}
+.btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line2);font-weight:500}
+.btn.sec:hover{border-color:var(--accent);background:transparent}
+.cl{border:1px solid var(--line);border-radius:10px;padding:11px;margin-bottom:9px;cursor:pointer;background:var(--card)}
 .cl:hover{border-color:var(--accent)}
-.cl p{margin:6px 0 0;line-height:1.45;color:#344054}
-.note{font-size:12px;color:var(--muted);line-height:1.5}
-.chat{display:flex;flex-direction:column;gap:8px}
-.msg{padding:8px 10px;border-radius:8px;line-height:1.5;white-space:pre-wrap}
-.msg.u{background:var(--ink);color:#fff;align-self:flex-end;max-width:90%}
-.msg.a{background:#f2f4f7;align-self:stretch}
-.msg.a a,.lnk{color:var(--accent);cursor:pointer;text-decoration:underline}
-.chatbox{display:flex;gap:6px;margin-top:10px}
-.chatbox textarea{flex:1;resize:vertical;min-height:54px;padding:8px;border:1px solid var(--line);border-radius:6px;font:inherit}
-.ex{display:block;text-align:left;width:100%;background:#fff;border:1px dashed var(--line);border-radius:6px;padding:6px 8px;margin:4px 0;color:#344054}
-.trace{font-size:11px;color:var(--muted);margin-top:4px}
-.trow{padding:8px 4px;border-bottom:1px solid var(--line);cursor:pointer}
-.trow:hover{background:#f5f8ff}
-.trh{display:flex;gap:8px;align-items:center;margin-bottom:3px}
+.cl p{margin:7px 0 0;line-height:1.5;color:var(--soft)}
+.chat{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.msg{padding:9px 11px;border-radius:9px;line-height:1.55;white-space:pre-wrap}
+.msg.u{background:#2f6fd6;color:#fff;align-self:flex-end;max-width:90%}
+.msg.a{background:var(--card);align-self:stretch}
+.msg.a a,.lnk{color:#7cc0ff;cursor:pointer;text-decoration:underline}
+.chatbox{display:flex;gap:8px;margin-top:12px}
+.chatbox textarea{flex:1;resize:vertical;min-height:58px}
+.ex{display:block;text-align:left;width:100%;background:none;border:1px dashed var(--line2);border-radius:7px;padding:7px 9px;margin:5px 0;color:var(--soft)}
+.ex:hover{border-color:var(--accent)}
+.trace{font-size:11px;color:var(--muted);margin-top:5px}
+.trow{position:relative;padding:10px 40px 10px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.trow:hover{background:#28324a}
+.trh{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bottom:4px}
 .trh .rk{width:22px;color:var(--muted)}
+.trow .queue-add{position:absolute;right:4px;top:9px;min-width:30px;min-height:30px;border:1px solid var(--line2);background:none;border-radius:7px;color:var(--accent);font-size:17px}
 .method td:first-child{white-space:nowrap;font-weight:600}
-svg text{font-family:inherit}
-button:active{transform:scale(.98)}
-button:disabled{cursor:default;opacity:.55}
-button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-.tabs button{min-height:40px}
-#stats{flex-wrap:wrap;gap:4px 12px;white-space:normal}
-.brand small{display:block;margin:3px 0 0}
-.statusline{font-size:11px;color:var(--muted);line-height:1.5;margin-top:8px}
-.caution{padding:10px 12px;border-bottom:1px solid var(--line);font-size:11px;color:#6d4c12;background:#fffbeb;line-height:1.5;flex:none}
-.download-list{display:grid;gap:5px}
-.download-list button{text-align:left;font-size:12px;padding:7px 9px}
-.review-card{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0}
-.review-card textarea{font:inherit;width:100%;min-height:66px;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:6px;resize:vertical}
+.review-card{border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0;background:var(--card)}
+.review-card textarea{min-height:66px;margin-top:6px;resize:vertical}
 .review-card .gid{overflow-wrap:anywhere}
 .review-card .row button{flex:none}
-.review-card label{display:block;color:var(--muted);font-size:12px;margin-top:8px}
+.review-card label{display:block;color:var(--muted);font-size:12px;margin-top:9px}
 .metric-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
-.metric-card{background:#f6f8fb;border:1px solid var(--line);border-radius:8px;padding:12px}
-.metric-card strong{display:block;font-size:22px;font-variant-numeric:tabular-nums;margin-bottom:4px}
-.check{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);line-height:1.5}
+.metric-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;color:var(--muted)}
+.metric-card strong{display:block;font-size:22px;font-variant-numeric:tabular-nums;margin-bottom:4px;color:#fff}
+.check{display:flex;gap:9px;padding:7px 0;border-bottom:1px solid var(--line);line-height:1.5}
 .check b{color:var(--ok)}
-.trow{position:relative;padding-right:36px}
-.trow .queue-add{position:absolute;right:2px;top:6px;min-width:30px;min-height:30px;border:1px solid var(--line);background:white;border-radius:6px;color:var(--accent);font-size:18px}
-#filterSummary{padding:8px 0;color:var(--muted);font-size:12px}
-#notice{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:30;background:#182230;color:#fff;padding:10px 16px;border-radius:8px;max-width:min(90vw,560px);box-shadow:0 4px 20px #0002}
-#emptyGraph{position:absolute;top:35%;left:15%;right:15%;text-align:center;background:#fff;border:1px solid var(--line);padding:20px;border-radius:8px;z-index:6}
+.empty{color:var(--muted);text-align:center;margin-top:30px;line-height:1.6}
+code{background:#1a2130;padding:1px 5px;border-radius:4px}
+#notice{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:60;background:#0f1520;border:1px solid var(--line2);color:#fff;padding:10px 16px;border-radius:9px;max-width:min(90vw,560px);box-shadow:0 8px 28px rgba(0,0,0,.45)}
+svg text{font-family:inherit}
+
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
-@media (max-width: 1200px){#app{grid-template-columns:220px minmax(0,1fr) 390px}.brand small{display:none}header{gap:12px}.comp span:first-child{width:130px}}
-@media (max-width: 920px){#app{height:auto;min-height:100vh;grid-template-columns:190px minmax(0,1fr);grid-template-rows:auto 65vh auto}header{grid-column:1/3;flex-wrap:wrap;padding:12px}#stats{order:3;width:100%}#right{grid-column:1/3;min-height:520px}.tab{max-height:720px}#left{grid-column:1}main{grid-column:2}.search{width:min(340px,55vw)}}
-@media (max-width: 560px){#app{display:flex;flex-direction:column}header{align-items:flex-start}.search{width:100%;min-width:0;order:2}.brand small{display:block}main{height:54vh;min-height:330px;order:2}#left{order:3;max-height:310px;border-top:1px solid var(--line)}#right{order:4;min-height:560px}.hint{max-width:90%;font-size:11px}.tab{padding:12px}.tabs button{padding:10px 8px}.grid{gap:6px 10px}}
+@media (max-width: 1280px){#app{grid-template-columns:60px 300px minmax(0,1fr)}#drawer{width:390px}.comp span:first-child{width:130px}}
+@media (max-width: 900px){
+  #app{grid-template-columns:1fr;grid-template-rows:auto minmax(480px,70vh) auto;height:auto;min-height:100vh}
+  #rail{grid-row:1;flex-direction:row;padding:8px 12px;gap:8px;border-right:0;border-bottom:1px solid #0f141d;overflow-x:auto;position:sticky;top:0;z-index:40}
+  #tabs{flex-direction:row;margin:0}
+  #tabs button.on::before{left:8px;right:8px;top:auto;bottom:-5px;width:auto;height:3px}
+  main{grid-row:2;min-height:480px}
+  #side{grid-row:3;border-right:0;border-top:1px solid var(--line);overflow:visible}
+  .searchbar{padding:8px 12px 10px}
+  #drawer{position:fixed;top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;max-height:74vh;border-radius:14px 14px 0 0;z-index:50}
+  .hint{max-width:92%;font-size:11px}
+}
+@media (max-width: 480px){.stats{gap:14px 8px}.stat b{font-size:16px}.tab{padding:18px 14px 24px}.comp span:first-child{width:112px}.grid{gap:6px 10px}}
 </style>
 </head>
 <body>
 <div id="app">
-  <header>
-    <div class="brand">Граф денег<small>AML-анализ транзакционной сети</small></div>
-    <div id="stats"></div>
-    <div class="search">
-      <input id="q" aria-label="Поиск по gid" role="combobox" aria-expanded="false" aria-controls="sugg" aria-autocomplete="list" placeholder="Поиск по gid — полный или часть (клавиша /)" autocomplete="off" spellcheck="false">
-      <div id="sugg" role="listbox" aria-label="Результаты поиска" hidden></div>
+  <nav id="rail" aria-label="Разделы">
+    <div class="logo" title="Граф денег"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2.6"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="20" r="2"/><path d="M6.6 7.3l3.6 3M17.4 7.3l-3.6 3M12 14.6v3.4"/></svg></div>
+    <div id="tabs" role="tablist" aria-orientation="vertical" aria-label="Инструменты аналитика">
+      <button data-t="overview" class="on" title="Обзор сети" aria-label="Обзор сети"></button>
+      <button data-t="top" title="Топ приоритетов" aria-label="Топ приоритетов"></button>
+      <button data-t="review" title="Список проверки" aria-label="Список проверки"></button>
+      <button data-t="clusters" title="Кластеры" aria-label="Кластеры"></button>
+      <button data-t="res" title="Устойчивость сети" aria-label="Устойчивость сети"></button>
+      <button data-t="ai" title="Ассистент" aria-label="Ассистент"></button>
+      <button data-t="quality" title="Качество и проверки ТЗ" aria-label="Качество и проверки ТЗ"></button>
+      <button data-t="method" title="Методика" aria-label="Методика"></button>
     </div>
-  </header>
+  </nav>
 
-  <aside id="left">
-    <h3>Режим</h3>
-    <div class="seg" id="mode"><button data-m="net" class="on">Вся сеть</button><button data-m="ego">Связи узла</button></div>
-    <h3>Цвет узлов</h3>
-    <div class="seg" id="colorby"><button data-c="role" class="on">Роль</button><button data-c="cluster">Кластер</button></div>
-    <h3>Роли</h3>
-    <div class="rolef" id="rolef"></div>
-    <h3>Фильтры</h3>
-    <div class="row"><label style="flex:1">Кластер</label></div>
-    <select id="clsel" aria-label="Фильтр по кластеру"></select>
-    <div class="row" style="margin-top:10px"><label style="flex:1">Только топ-N по приоритету</label></div>
-    <select id="topn" aria-label="Фильтр по приоритету"><option value="0">все узлы</option><option value="20">топ-20</option><option value="50">топ-50</option><option value="100">топ-100</option><option value="300">топ-300</option></select>
-    <div class="row"><label><input type="checkbox" id="seedonly"> только связи seed</label></div>
-    <button class="btn sec" id="resetFilters">Сбросить фильтры</button>
-    <div id="filterSummary" role="status"></div>
-    <h3>Легенда</h3>
-    <div class="legend">
-      <div><i class="sw" style="background:#fff;border:3px solid #111"></i>seed — клиент из списка правоохранителей</div>
-      <div><i class="sw" style="background:#fff;border:2px dashed #555"></i>4-е колено, исходящие не выгружены</div>
-      <div><i style="width:18px;height:2px;background:#9aa4b2"></i>→ направление перевода</div>
-      <div>размер узла — приоритет; толщина ребра — сумма</div>
-      <div><i style="width:18px;height:3px;background:var(--in)"></i>откуда пришли деньги</div>
-      <div><i style="width:18px;height:3px;background:var(--out)"></i>куда ушли деньги</div>
+  <aside id="side">
+    <div class="tab" id="t-overview">
+      <div class="brand"><b>Граф денег</b><span id="period"></span></div>
+      <h3>Обзор сети</h3>
+      <p class="note">Сводка по всей выгрузке. Роли — гипотезы для проверки по формальным правилам, а не утверждения о виновности.</p>
+      <div class="stats" id="netStats"></div>
+      <h3>Роли</h3>
+      <p class="note">Нажмите на роль, чтобы скрыть или показать её узлы на схеме.</p>
+      <div class="stats roles" id="rolef"></div>
+      <h3>Отображение</h3>
+      <span class="fld">Цвет узлов</span>
+      <div class="seg" id="colorby"><button data-c="role" class="on">Роль</button><button data-c="cluster">Кластер</button></div>
+      <label class="fld" for="clsel">Кластер</label>
+      <select id="clsel"></select>
+      <label class="fld" for="topn">Только топ-N по приоритету</label>
+      <select id="topn"><option value="0">все узлы</option><option value="20">топ-20</option><option value="50">топ-50</option><option value="100">топ-100</option><option value="300">топ-300</option></select>
+      <label class="chk"><input type="checkbox" id="seedonly"> только связи seed</label>
+      <div class="row"><button class="btn sec" id="resetFilters">Сбросить фильтры</button><span id="filterSummary" role="status"></span></div>
+      <h3>Легенда</h3>
+      <div class="legend">
+        <div><i class="sw" style="background:transparent;border:2.5px solid #fff"></i>seed — клиент из списка правоохранителей</div>
+        <div><i class="sw" style="background:transparent;border:2px dashed #8e9bb0"></i>4-е колено, исходящие не выгружены</div>
+        <div><i style="width:18px;height:2px;background:#8290a6"></i>направление перевода — стрелка</div>
+        <div><i style="width:18px;height:3px;background:var(--in)"></i>откуда пришли деньги</div>
+        <div><i style="width:18px;height:3px;background:var(--out)"></i>куда ушли деньги</div>
+        <div>размер узла — приоритет; толщина ребра — сумма</div>
+      </div>
+      <h3>Выгрузки</h3>
+      <div class="download-list" id="downloads"></div>
+      <p class="statusline">Данные и расчёт хранятся локально. Для Excel импортируйте gid как текст — это 18-значный идентификатор.</p>
     </div>
-    <h3>Выгрузки</h3>
-    <div class="download-list" id="downloads"></div>
-    <p class="statusline">Данные и расчёт хранятся локально. Для Excel импортируйте gid как текст — это 18-значный идентификатор.</p>
-  </aside>
-
-  <main>
-    <div id="cy"></div>
-    <div id="cyEgo" hidden></div>
-    <div id="emptyGraph" hidden><b>Нет узлов по выбранным фильтрам</b><p class="note">Сбросьте фильтры или найдите клиента по gid.</p><button class="btn sec" id="emptyReset">Сбросить фильтры</button></div>
-    <div class="toolbar" id="tbNet">
-      <button id="fit">Показать всё</button>
-      <button id="labels">Подписи: топ</button>
-    </div>
-    <div class="toolbar" id="tbEgo" hidden>
-      <button id="egoBack">← Вся сеть</button>
-      <select id="hops" aria-label="Глубина связей"><option value="1" selected>1 шаг</option><option value="2">2 шага</option><option value="3">3 шага</option></select>
-      <select id="dir"><option value="both">вверх и вниз</option><option value="up">откуда деньги</option><option value="down">куда деньги</option></select>
-      <button id="egoFit">Вписать</button>
-    </div>
-    <div class="hint" id="hint">Клик — карточка узла и его потоки. В режиме «Связи узла» двойной клик по соседу переносит фокус на него.</div>
-  </main>
-
-  <aside id="right">
-    <div class="caution">Роли — гипотезы для проверки. Скор не является вероятностью виновности. По 4-му колену исходящие неизвестны.</div>
-    <nav class="tabs" id="tabs" role="tablist" aria-label="Инструменты аналитика">
-      <button data-t="node" class="on">Узел</button><button data-t="top">Топ</button><button data-t="review">Проверка <span id="reviewCount">0</span></button><button data-t="clusters">Кластеры</button><button data-t="res">Устойчивость</button><button data-t="ai">Ассистент</button><button data-t="quality">Качество</button><button data-t="method">Методика</button>
-    </nav>
-    <div class="tab" id="t-node"><div class="empty">Выберите узел на схеме,<br>в поиске или во вкладке «Топ».</div></div>
     <div class="tab" id="t-top" hidden></div>
+    <div class="tab" id="t-review" hidden></div>
     <div class="tab" id="t-clusters" hidden></div>
     <div class="tab" id="t-res" hidden></div>
     <div class="tab" id="t-ai" hidden></div>
-    <div class="tab" id="t-method" hidden></div>
-    <div class="tab" id="t-review" hidden></div>
     <div class="tab" id="t-quality" hidden></div>
+    <div class="tab" id="t-method" hidden></div>
   </aside>
+
+  <main>
+    <div class="searchbar">
+      <div class="qmodes" id="qmodes" role="tablist" aria-label="Что искать"><button data-q="gid" class="on" role="tab" aria-selected="true">gid клиента</button><button data-q="cluster" role="tab" aria-selected="false">кластер</button></div>
+      <div class="search">
+        <input id="q" aria-label="Поиск" role="combobox" aria-expanded="false" aria-controls="sugg" aria-autocomplete="list" autocomplete="off" spellcheck="false">
+        <svg class="sicon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+        <div id="sugg" role="listbox" aria-label="Результаты поиска" hidden></div>
+      </div>
+    </div>
+    <div id="stage">
+      <div id="cy"></div>
+      <div id="cyEgo" hidden></div>
+      <div id="emptyGraph" hidden><b>Нет узлов по выбранным фильтрам</b><p class="note">Сбросьте фильтры или найдите клиента по gid.</p><button class="btn sec" id="emptyReset">Сбросить фильтры</button></div>
+      <div class="toolbar">
+        <div class="seg" id="mode"><button data-m="net" class="on">Вся сеть</button><button data-m="ego">Связи узла</button></div>
+        <span id="tbNet"><button id="fit">Показать всё</button><button id="labels">Подписи: топ</button></span>
+        <span id="tbEgo" hidden>
+          <select id="hops" aria-label="Глубина связей"><option value="1" selected>1 шаг</option><option value="2">2 шага</option><option value="3">3 шага</option></select>
+          <select id="dir" aria-label="Направление"><option value="both">вверх и вниз</option><option value="up">откуда деньги</option><option value="down">куда деньги</option></select>
+          <button id="egoFit">Вписать</button>
+        </span>
+      </div>
+      <div class="hint" id="hint"></div>
+      <aside id="drawer" hidden aria-label="Карточка клиента">
+        <header><span class="caution">Роль — гипотеза для проверки. Скор не является вероятностью виновности. По 4-му колену исходящие неизвестны.</span><button class="iconbtn" id="drawerClose" aria-label="Закрыть карточку" title="Закрыть (Esc)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
+        <div id="t-node"></div>
+      </aside>
+    </div>
+  </main>
 </div>
 <div id="notice" role="status" hidden></div>
 
@@ -209,7 +274,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 /*__DATA__*/
 (function(){
 "use strict";
-const M = DATA.meta, COLORS = M.colors, RU = M.role_ru;
+const M = DATA.meta, COLORS = M.colors, RU = M.role_ru, S = M.stats;
 const byId = new Map(DATA.nodes.map(n => [n.id, n]));
 const outE = new Map(), inE = new Map();
 DATA.edges.forEach(e => {
@@ -217,13 +282,47 @@ DATA.edges.forEach(e => {
   (inE.get(e.t) || inE.set(e.t, []).get(e.t)).push(e);
 });
 const ranked = [...DATA.nodes].sort((a, b) => a.rk - b.rk);
-const CL_PAL = ["#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd","#8c564b","#e377c2","#17becf","#bcbd22","#393b79","#637939","#8c6d31","#843c39","#7b4173","#3182bd","#e6550d","#31a354","#756bb1","#636363","#fd8d3c"];
-const clColor = c => c === 0 ? "#c7ccd4" : CL_PAL[(c - 1) % CL_PAL.length];
+const CL_PAL = ["#4aa8ff","#ff8a5b","#34d3a1","#f25f73","#b48cff","#f4c95d","#e45dbf","#5ad1e6","#c3e36b","#8fa7ff","#ffb86b","#7ee0b5","#ff7aa2","#9ad0ff","#d9a3ff","#ffd580","#6fe3c6","#ff9e9e","#a3b8d8","#c9e07a"];
+const clColor = c => c === 0 ? "#5d6a80" : CL_PAL[(c - 1) % CL_PAL.length];
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function kzt(x){ x = +x || 0; if (x >= 1e6) return (x/1e6).toFixed(1).replace(".0","") + " млн ₸"; if (x >= 1e3) return Math.round(x/1e3) + " тыс ₸"; return Math.round(x) + " ₸"; }
 const pct = x => x == null ? "—" : Math.round(x*100) + "%";
-const badge = r => `<span class="badge" style="background:${COLORS[r]};color:${["peripheral","consolidator","transit"].includes(r) ? "#141a26" : "#fff"}">${RU[r]}</span>`;
+const LIGHT = new Set(["terminal","transit","peripheral"]);  // светлые заливки — тёмный текст и значок
+const inkOn = r => LIGHT.has(r) ? "#141b27" : "#ffffff";
+const badge = r => `<span class="badge" style="background:${COLORS[r]};color:${inkOn(r)}">${RU[r]}</span>`;
+
+// ---------------------------------------------------------------- значки (линейные, 24×24)
+const GLYPH = {
+  coordinator:'<circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="5" r="2"/><circle cx="19.5" cy="5" r="2"/><circle cx="4.5" cy="19" r="2"/><circle cx="19.5" cy="19" r="2"/><path d="M6.2 6.6l3.6 3.3M17.8 6.6l-3.6 3.3M6.2 17.4l3.6-3.3M17.8 17.4l-3.6-3.3"/>',
+  consolidator:'<path d="M4 3.5l5 5M20 3.5l-5 5M12 2.5v6.5"/><path d="M4 13.5h4l1.5 2.5h5l1.5-2.5h4V20H4z"/>',
+  distributor:'<circle cx="5.5" cy="12" r="2.5"/><circle cx="18.5" cy="5" r="2.5"/><circle cx="18.5" cy="12" r="2.5"/><circle cx="18.5" cy="19" r="2.5"/><path d="M8 11l8-4.8M8 12h8M8 13l8 4.8"/>',
+  transit:'<path d="M3 12h16M13.5 6l6 6-6 6"/>',
+  terminal:'<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18M15.5 15h2.5"/>',
+  peripheral:'<circle cx="12" cy="12" r="3.5"/>',
+  nodes:'<circle cx="9" cy="8" r="3"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15.5 14.2c2.6-.3 4.6 1.3 5.2 4.3"/>',
+  transfers:'<path d="M4 8h13M13.5 4.5L17 8l-3.5 3.5M20 16H7M10.5 12.5L7 16l3.5 3.5"/>',
+  seed:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
+  turnover:'<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.8"/>',
+  clusters:'<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 12.5l9 5 9-5"/>',
+  pairs:'<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M8.5 12h7M13 9.5l2.5 2.5-2.5 2.5"/>',
+  overview:'<circle cx="12" cy="12" r="9"/><path d="M15.8 8.2l-2.2 5.4-5.4 2.2 2.2-5.4z"/>',
+  top:'<path d="M10 6h10M10 12h10M10 18h10"/><path d="M4.5 4.5l1-1V8"/><path d="M4 11.3c.4-.8 2.3-.9 2.3.3 0 1-2.3 1.7-2.3 3h2.5"/>',
+  review:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.8h6V4M8.5 12.5l2.3 2.3 4.7-4.8"/>',
+  res:'<path d="M12 3l8 3v6c0 4.8-3.4 7.9-8 9-4.6-1.1-8-4.2-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  ai:'<path d="M4 5h16v11h-9l-5 4v-4H4z"/><path d="M9 10.5h.01M12 10.5h.01M15 10.5h.01"/>',
+  quality:'<circle cx="12" cy="12" r="9"/><path d="M8 12.2l2.8 2.8 5.2-5.6"/>',
+  method:'<path d="M5 4.5A1.5 1.5 0 016.5 3H19v15H6.5A1.5 1.5 0 005 19.5z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H19"/>',
+};
+const svg = (name, color = "currentColor", size = 20, width = 2) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${GLYPH[name]}</svg>`;
+const ICON_URI = {};
+M.roles.filter(r => r !== "peripheral").forEach(r => {
+  ICON_URI[r] = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="${inkOn(r)}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${GLYPH[r]}</svg>`);
+});
+$("#tabs").querySelectorAll("button").forEach(button => {
+  button.innerHTML = svg(button.dataset.t) + (button.dataset.t === "review" ? '<span class="count" id="reviewCount"></span>' : "");
+});
+function setReviewCount(size){ const c = $("#reviewCount"); c.textContent = size || ""; c.toggleAttribute("data-zero", !size); }
 
 let selected = null, mode = "net", colorBy = "role", labelsMode = "top";
 const Review = MoneyGraphReview;
@@ -248,7 +347,7 @@ function saveReview(refresh = true){
   let saved = true;
   try { localStorage.setItem(storageKey, JSON.stringify([...review.values()])); }
   catch { saved = false; notify("Не удалось сохранить в браузере. Скачайте JSON, чтобы не потерять заметки."); }
-  $("#reviewCount").textContent = review.size;
+  setReviewCount(review.size);
   if (refresh){ renderReview(); renderTop(); }
   const button = $("#bReview");
   if (button) button.textContent = review.has(selected) ? "✓ В списке проверки" : "+ На проверку";
@@ -261,7 +360,7 @@ function toggleReview(id){
 }
 function renderReview(){
   const records = [...review.values()].sort((first, second) => byId.get(first.gid).rk - byId.get(second.gid).rk);
-  $("#reviewCount").textContent = records.length;
+  setReviewCount(records.length);
   const requests = records.reduce((total, record) => total + byId.get(record.gid).req.length, 0);
   $("#t-review").innerHTML = `<h3>Список углублённой проверки</h3><p class="note">Выберите клиентов в карточке или топ-листе. Заметки сохраняются в этом браузере отдельно для этой выгрузки. Статус «Рассмотрен» не означает подтверждение гипотезы.</p>
     <div class="metric-cards"><div class="metric-card"><strong>${records.length}</strong>клиентов выбрано</div><div class="metric-card"><strong>${requests}</strong>рекомендаций по данным</div></div>
@@ -274,7 +373,7 @@ function renderReview(){
   $("#reviewCsv").onclick = () => downloadFile("review_list.csv", Review.toCsv(new Map(records.map(record => [record.gid, record])), byId), "text/csv;charset=utf-8");
   $("#reviewJson").onclick = () => downloadFile("review_list.json", JSON.stringify({dataset_id:M.dataset_id, records}, null, 2), "application/json");
   $("#reviewMemo").onclick = () => {
-    const lines = ["# Справка для углублённой проверки", "", `Период: ${M.stats.date_min} — ${M.stats.date_max}. Выбрано клиентов: ${records.length}.`, "", "Роли являются гипотезами. Виновность, источник средств и назначение операций не установлены. Входящие неполны, 4-е колено обрезано; не видны наличные, межбанк и переводы ниже 5 000 KZT.", ""];
+    const lines = ["# Справка для углублённой проверки", "", `Период: ${S.date_min} — ${S.date_max}. Выбрано клиентов: ${records.length}.`, "", "Роли являются гипотезами. Виновность, источник средств и назначение операций не установлены. Входящие неполны, 4-е колено обрезано; не видны наличные, межбанк и переводы ниже 5 000 KZT.", ""];
     records.forEach(record => {
       const node = byId.get(record.gid);
       lines.push(`## ${node.id}`, `Роль: ${RU[node.r]}. Приоритет: ${node.p}. Статус: ${Review.statuses[record.status]}.`, "", node.ev, "", node.why, "", "Запросить: " + (node.req.join("; ") || "дополнительные сведения по решению аналитика"), "", "Заметка аналитика: " + (record.note || "не добавлена"), "");
@@ -295,36 +394,64 @@ function renderReview(){
   };
 }
 
-// ---------------------------------------------------------------- header
-const S = M.stats;
-$("#stats").innerHTML = `<span><b>${S.n_nodes}</b> узлов</span><span><b>${S.n_edges}</b> рёбер</span><span><b>${S.n_seed}</b> seed</span><span>оборот <b>${kzt(S.turnover_kzt)}</b></span><span><b>${DATA.clusters.length}</b> кластеров</span><span>${S.date_min} — ${S.date_max}</span>`;
+// ---------------------------------------------------------------- обзор сети
+const counts = {}; DATA.nodes.forEach(n => counts[n.r] = (counts[n.r] || 0) + 1);
+const num = x => Number(x).toLocaleString("ru-RU");
+$("#period").textContent = `AML-анализ · ${S.date_min} — ${S.date_max}`;
+const stat = (icon, color, label, value) => `<div class="stat" title="${label === "Связи" ? "уникальные пары плательщик → получатель" : ""}"><span class="ico" style="background:${color}">${svg(icon, "#fff", 15, 2.2)}</span><span><small>${label}</small><b>${value}</b></span></div>`;
+$("#netStats").innerHTML = [
+  stat("nodes", "#6f86a8", "Клиенты", num(S.n_nodes)),
+  stat("seed", "#8f7ad6", "Seed из дела", num(S.n_seed)),
+  stat("transfers", "#3f86d6", "Переводы", num(S.n_tx)),
+  stat("pairs", "#4f9d8a", "Связи", num(S.n_edges)),
+  stat("turnover", "#c9873f", "Оборот", kzt(S.turnover_kzt)),
+  stat("clusters", "#5f6d84", "Кластеры", num(DATA.clusters.length)),
+].join("");
 
-// ---------------------------------------------------------------- main graph
+// ---------------------------------------------------------------- основной граф
+const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 const ew = w => Math.max(0.6, Math.min(5, 0.6 + 4.4 * (Math.log10(w) - 3.7) / 2.9));
 const nsize = p => 6 + 36 * Math.pow(p, 1.6);
 function nodeColor(n){ return colorBy === "role" ? COLORS[n.r] : clColor(n.c); }
-function elementsFor(nodes, withPos){
+function nodeData(n, sz, lbl = ""){
+  const d = {id:n.id, lbl, col:nodeColor(n), sz, sd:n.sd, tr:n.tr};
+  if (ICON_URI[n.r] && sz >= 13) d.ic = ICON_URI[n.r];
+  return d;
+}
+function elementsFor(nodes){
   const ids = new Set(nodes.map(n => n.id));
-  const els = nodes.map(n => ({group:"nodes", data:{id:n.id, lbl:"", col:nodeColor(n), sz:nsize(n.p), sd:n.sd, tr:n.tr}, position: withPos ? {x:n.x, y:n.y} : undefined}));
+  const els = nodes.map(n => ({group:"nodes", data:nodeData(n, nsize(n.p)), position:{x:n.x, y:n.y}}));
   DATA.edges.forEach((e, i) => { if (ids.has(e.s) && ids.has(e.t)) els.push({group:"edges", data:{id:"e"+i, source:e.s, target:e.t, ew:ew(e.w), w:e.w}}); });
   return els;
 }
 const baseStyle = [
-  {selector:"node", style:{"width":"data(sz)","height":"data(sz)","background-color":"data(col)","border-width":0,"label":"data(lbl)","font-size":10,"color":"#1c2330","text-outline-color":"#fff","text-outline-width":2,"text-valign":"top","text-margin-y":-3,"min-zoomed-font-size":7}},
-  {selector:"node[sd = 1]", style:{"border-width":2.5,"border-color":"#111"}},
-  {selector:"node[tr = 1]", style:{"border-width":1.2,"border-style":"dashed","border-color":"#555"}},
-  {selector:"edge", style:{"width":"data(ew)","line-color":"#9aa4b2","opacity":0.28,"curve-style":"straight","target-arrow-shape":"triangle","target-arrow-color":"#9aa4b2","arrow-scale":0.6}},
-  {selector:".faded", style:{"opacity":0.07}},
-  {selector:"edge.ein", style:{"line-color":"#1f77b4","target-arrow-color":"#1f77b4","opacity":0.95,"z-index":9}},
-  {selector:"edge.eout", style:{"line-color":"#e4572e","target-arrow-color":"#e4572e","opacity":0.95,"z-index":9}},
-  {selector:"node.sel", style:{"border-width":4,"border-color":"#1f5eff","border-style":"solid","z-index":10}},
+  {selector:"node", style:{"width":"data(sz)","height":"data(sz)","background-color":"data(col)","border-width":0,"label":"data(lbl)","font-size":10,"font-family":FONT,"color":"#e6edf6","text-outline-color":"#1b2230","text-outline-width":2,"text-valign":"top","text-margin-y":-4,"min-zoomed-font-size":7}},
+  {selector:"node[ic]", style:{"background-image":"data(ic)","background-width":"56%","background-height":"56%","background-fit":"none"}},
+  {selector:"node[sd = 1]", style:{"border-width":2.5,"border-color":"#ffffff"}},
+  {selector:"node[tr = 1]", style:{"border-width":1.4,"border-style":"dashed","border-color":"#8e9bb0"}},
+  {selector:"edge", style:{"width":"data(ew)","line-color":"#8290a6","opacity":0.3,"curve-style":"straight","target-arrow-shape":"triangle","target-arrow-color":"#8290a6","arrow-scale":0.6}},
+  {selector:".faded", style:{"opacity":0.06}},
+  {selector:"edge.ein", style:{"line-color":"#4aa8ff","target-arrow-color":"#4aa8ff","opacity":0.95,"z-index":9}},
+  {selector:"edge.eout", style:{"line-color":"#ff8a5b","target-arrow-color":"#ff8a5b","opacity":0.95,"z-index":9}},
+  {selector:"node.sel", style:{"border-width":3,"border-color":"#4aa8ff","border-style":"solid","overlay-color":"#4aa8ff","overlay-opacity":0.2,"overlay-padding":7,"z-index":10}},
   {selector:"node.nb", style:{"z-index":8}},
   {selector:"node.ctx", style:{"opacity":0.55}},
   {selector:".hide", style:{"display":"none"}},
 ];
-const cy = cytoscape({container:$("#cy"), elements:elementsFor(DATA.nodes, true), layout:{name:"preset"}, style:baseStyle,
+const cy = cytoscape({container:$("#cy"), elements:elementsFor(DATA.nodes), layout:{name:"preset"}, style:baseStyle,
   minZoom:0.03, maxZoom:5, textureOnViewport:true, hideEdgesOnViewport:true});
-cy.fit(undefined, 30);
+
+// вписывание с учётом карточки справа и панели инструментов сверху
+function drawerInset(){ const d = $("#drawer"); return !d.hidden && window.innerWidth > 900 ? d.offsetWidth + 24 : 0; }
+function fitTo(inst, eles, pad = 40, maxZoom = 5){
+  if (!eles || !eles.length) return;
+  const bb = eles.boundingBox(), top = 48;
+  const availW = Math.max(80, inst.width() - drawerInset() - 2 * pad), availH = Math.max(80, inst.height() - top - 2 * pad);
+  const zoom = Math.max(inst.minZoom(), Math.min(maxZoom, availW / Math.max(bb.w, 1), availH / Math.max(bb.h, 1)));
+  inst.viewport({zoom, pan:{x: pad + availW / 2 - zoom * (bb.x1 + bb.w / 2), y: top + pad + availH / 2 - zoom * (bb.y1 + bb.h / 2)}});
+}
+const fitSelection = el => fitTo(cy, el.closedNeighborhood(), 60, 1.6);
+fitTo(cy, cy.nodes(), 24);
 
 function applyLabels(){
   cy.batch(() => cy.nodes().forEach(el => {
@@ -339,7 +466,7 @@ $("#labels").onclick = () => {
   $("#labels").textContent = "Подписи: " + {top:"топ", none:"нет", all:"все"}[labelsMode];
   applyLabels();
 };
-$("#fit").onclick = () => cy.fit(cy.nodes(":visible"), 30);
+$("#fit").onclick = () => fitTo(cy, cy.nodes(":visible"), 30);
 
 function clearHL(){
   cy.batch(() => { cy.elements().removeClass("faded ein eout sel nb"); });
@@ -358,24 +485,29 @@ function highlight(id){
   applyLabels();
 }
 cy.on("tap", "node", ev => selectNode(ev.target.id(), false));
-cy.on("tap", ev => { if (ev.target === cy){ applyFilters(); clearHL(); applyLabels(); } });
+cy.on("tap", ev => { if (ev.target === cy) closeDrawer(); });
 
-// ---------------------------------------------------------------- filters
+// ---------------------------------------------------------------- фильтры
 const roleOn = new Set(M.roles);
-const counts = {}; DATA.nodes.forEach(n => counts[n.r] = (counts[n.r] || 0) + 1);
-$("#rolef").innerHTML = M.roles.map(r => `<label><input type="checkbox" data-r="${r}" checked><span class="sw" style="background:${COLORS[r]}"></span><span class="role-name">${RU[r]}</span><span class="cnt">${counts[r]||0}</span></label>`).join("");
-$("#rolef").onchange = e => { const r = e.target.dataset.r; e.target.checked ? roleOn.add(r) : roleOn.delete(r); applyFilters(); };
+$("#rolef").innerHTML = M.roles.map(r => `<button class="stat role" data-r="${r}" aria-pressed="true" title="Скрыть или показать: ${RU[r]}"><span class="ico" style="background:${COLORS[r]}">${svg(r, inkOn(r), 15, 2.2)}</span><span><small>${RU[r]}</small><b>${num(counts[r] || 0)}</b></span></button>`).join("");
+$("#rolef").onclick = e => {
+  const button = e.target.closest("[data-r]"); if (!button) return;
+  const r = button.dataset.r;
+  roleOn.has(r) ? roleOn.delete(r) : roleOn.add(r);
+  button.setAttribute("aria-pressed", String(roleOn.has(r)));
+  applyFilters();
+};
 $("#clsel").innerHTML = `<option value="-1">все кластеры</option>` + DATA.clusters.map(c => `<option value="${c.cluster_id}">#${c.cluster_id} · ${esc(c.archetype)} · ${c.n_nodes} узл., ${c.n_seed} seed</option>`).join("");
-$("#clsel").onchange = () => { applyFilters(); cy.fit(cy.nodes(":visible"), 40); };
+$("#clsel").onchange = () => { applyFilters(); fitTo(cy, cy.nodes(":visible"), 40); };
 $("#topn").onchange = applyFilters;
 $("#seedonly").onchange = applyFilters;
 function resetFilters(){
   M.roles.forEach(role => roleOn.add(role));
-  $("#rolef").querySelectorAll("input").forEach(input => input.checked = true);
+  $("#rolef").querySelectorAll("[data-r]").forEach(button => button.setAttribute("aria-pressed", "true"));
   $("#clsel").value = "-1"; $("#topn").value = "0"; $("#seedonly").checked = false;
   applyFilters(); clearHL(); applyLabels();
 }
-$("#resetFilters").onclick = $("#emptyReset").onclick = () => { resetFilters(); cy.fit(cy.nodes(":visible"), 30); };
+$("#resetFilters").onclick = $("#emptyReset").onclick = () => { resetFilters(); fitTo(cy, cy.nodes(":visible"), 30); };
 function applyFilters(){
   const cl = +$("#clsel").value, topn = +$("#topn").value, seedOnly = $("#seedonly").checked;
   const seedNb = new Set();
@@ -388,7 +520,7 @@ function applyFilters(){
     });
   });
   const visible = cy.nodes().not(".hide").length;
-  $("#filterSummary").textContent = `Показано ${visible} из ${DATA.nodes.length} узлов`;
+  $("#filterSummary").textContent = `Показано ${num(visible)} из ${num(DATA.nodes.length)}`;
   $("#emptyGraph").hidden = visible > 0 || mode === "ego";
 }
 applyFilters();
@@ -399,9 +531,11 @@ $("#colorby").onclick = e => {
   if (egoCy) egoCy.nodes().forEach(el => { const n = byId.get(el.id()); if (n) el.data("col", nodeColor(n)); });
 };
 
-// ---------------------------------------------------------------- ego graph: послойная схема «откуда → узел → куда»
+// ---------------------------------------------------------------- связи узла: послойная схема «откуда → узел → куда»
 let egoCy = null, egoCenter = null;
 const MAX_PER_LEVEL = 24;
+const NET_HINT = "Клик по узлу — карточка и потоки: синие рёбра — откуда пришли деньги, оранжевые — куда ушли. «Связи узла» раскладывает соседей слоями.";
+$("#hint").textContent = NET_HINT;
 function egoLevels(id, hops, dir){
   const level = new Map([[id, 0]]);
   const expand = (sign, getNext) => {
@@ -432,10 +566,10 @@ function showEgo(id){
     const more = ids.filter(k => k.startsWith("more"));
     const all = [...real, ...more];
     all.forEach((k, i) => {
-      const y = (i - (all.length - 1) / 2) * 52, x = l * 300;
-      if (k.startsWith("more")){ els.push({group:"nodes", data:{id:k, lbl:`+${level.get(k).n} ещё`, col:"#e9ecf1", sz:22, sd:0, tr:0, more:1}, position:{x, y}}); return; }
+      const y = (i - (all.length - 1) / 2) * 54, x = l * 300;
+      if (k.startsWith("more")){ els.push({group:"nodes", data:{id:k, lbl:`+${level.get(k).n} ещё`, col:"#2d384c", sz:22, sd:0, tr:0, more:1}, position:{x, y}}); return; }
       const n = byId.get(k);
-      els.push({group:"nodes", data:{id:k, lbl:`${n.s} · ${RU[n.r]}${n.sd ? " · seed" : ""}`, col:nodeColor(n), sz:k === id ? 46 : 14 + 26 * n.p, sd:n.sd, tr:n.tr}, position:{x, y}});
+      els.push({group:"nodes", data:nodeData(n, k === id ? 46 : 14 + 26 * n.p, `${n.s} · ${RU[n.r]}${n.sd ? " · seed" : ""}`), position:{x, y}});
     });
   });
   const inView = new Set([...level.keys()]);
@@ -448,16 +582,16 @@ function showEgo(id){
   if (egoCy) egoCy.destroy();
   egoCy = cytoscape({container:$("#cyEgo"), elements:els, layout:{name:"preset"}, minZoom:0.1, maxZoom:4,
     style:[...baseStyle,
-      {selector:"node", style:{"text-valign":"bottom","text-margin-y":4,"font-size":11,"min-zoomed-font-size":0}},
-      {selector:"node[more = 1]", style:{"shape":"round-rectangle","width":90,"height":22,"text-valign":"center","text-margin-y":0,"color":"#667085","border-width":1,"border-color":"#c7ccd4"}},
-      {selector:"edge", style:{"curve-style":"bezier","opacity":0.55,"label":"data(elbl)","font-size":9,"color":"#475467","text-background-color":"#fbfbfc","text-background-opacity":1,"text-background-padding":1,"text-rotation":"autorotate","min-zoomed-font-size":6}},
+      {selector:"node", style:{"text-valign":"bottom","text-margin-y":5,"font-size":11,"min-zoomed-font-size":0}},
+      {selector:"node[more = 1]", style:{"shape":"round-rectangle","width":90,"height":22,"text-valign":"center","text-margin-y":0,"color":"#aab6c8","border-width":1,"border-color":"#3a4659"}},
+      {selector:"edge", style:{"curve-style":"bezier","opacity":0.6,"label":"data(elbl)","font-size":9,"font-family":FONT,"color":"#b9c4d4","text-background-color":"#1b2230","text-background-opacity":1,"text-background-padding":2,"text-rotation":"autorotate","min-zoomed-font-size":6}},
     ]});
   egoCy.getElementById(id).addClass("sel");
-  egoCy.fit(undefined, 40);
+  fitTo(egoCy, egoCy.elements(), 40, 2);
   egoCy.on("tap", "node", ev => { if (!ev.target.data("more")) selectNode(ev.target.id(), false); });
   egoCy.on("dbltap", "node", ev => { if (!ev.target.data("more")) selectNode(ev.target.id(), true); });
   const n = byId.get(id);
-  $("#hint").innerHTML = `Связи узла <b class="gid">${n.id}</b>: слева — кто платил (синие рёбра), справа — кому ушло (оранжевые). Суммы за весь период. Показаны до ${MAX_PER_LEVEL} узлов на слой; +N — скрытые узлы. Двойной клик — перейти к соседу.`;
+  $("#hint").innerHTML = `Связи <b class="gid">${n.id}</b>: слева — кто платил (синие рёбра), справа — кому ушло (оранжевые). Суммы за весь период, до ${MAX_PER_LEVEL} узлов на слой; +N — скрытые. Двойной клик — перейти к соседу.`;
 }
 function setMode(m){
   mode = m;
@@ -469,19 +603,28 @@ function setMode(m){
     if (!selected) selectNode(id, false);
     showEgo(id);
   } else {
-    $("#hint").innerHTML = "Клик — карточка узла и его потоки. В режиме «Связи узла» двойной клик по соседу переносит фокус на него.";
+    $("#hint").textContent = NET_HINT;
     cy.resize();
   }
 }
 $("#mode").onclick = e => { if (e.target.dataset.m) setMode(e.target.dataset.m); };
-$("#egoBack").onclick = () => setMode("net");
-$("#egoFit").onclick = () => egoCy && egoCy.fit(undefined, 40);
+$("#egoFit").onclick = () => egoCy && fitTo(egoCy, egoCy.elements(), 40, 2);
 $("#hops").onchange = $("#dir").onchange = () => egoCenter && showEgo(egoCenter);
 
 // ---------------------------------------------------------------- выбор узла и карточка
+function openDrawer(){ $("#drawer").hidden = false; }
+function closeDrawer(){
+  $("#drawer").hidden = true;
+  selected = null;
+  applyFilters(); clearHL(); applyLabels();
+  history.replaceState(null, "", location.pathname + location.search);
+}
+$("#drawerClose").onclick = closeDrawer;
 function selectNode(id, recenterEgo = true){
   const n = byId.get(id); if (!n) return;
   selected = id;
+  renderCard(n);
+  openDrawer();
   if (mode === "net"){
     const el = cy.getElementById(id);
     applyFilters();  // убирает временно показанных соседей прошлого выбора
@@ -492,16 +635,12 @@ function selectNode(id, recenterEgo = true){
       if (outside.length){ outside.removeClass("hide").addClass("ctx"); notify(`Фильтр сохранён; показаны связи вне него: ${outside.length}`); }
     }
     highlight(id);
-    const nb = el.closedNeighborhood();
-    cy.fit(nb, 70);
-    if (cy.zoom() > 1.6) cy.zoom({level:1.6, position:el.position()});
+    fitSelection(el);
   } else {
     highlight(id);
     if (recenterEgo) showEgo(id);
     else if (egoCy){ egoCy.nodes().removeClass("sel"); egoCy.getElementById(id).addClass("sel"); }
   }
-  renderCard(n);
-  showTab("node");
   history.replaceState(null, "", "#" + id);
 }
 function comps(n){
@@ -521,8 +660,8 @@ function flowTable(list, key, title){
   return `<h3>${title} (${list.length})</h3><table><tr><th>gid</th><th>роль</th><th class="num">сумма</th><th class="num">пер.</th></tr>${rows}${more}</table>`;
 }
 function timeline(n){
-  const periodStart = Date.parse(M.stats.date_min + "T00:00:00Z");
-  const days = Math.round((Date.parse(M.stats.date_max + "T00:00:00Z") - periodStart) / 86400000) + 1;
+  const periodStart = Date.parse(S.date_min + "T00:00:00Z");
+  const days = Math.round((Date.parse(S.date_max + "T00:00:00Z") - periodStart) / 86400000) + 1;
   const dayLabel = day => new Date(periodStart + (day - 1) * 86400000).toISOString().slice(0,10);
   const inD = new Array(days + 1).fill(0), outD = new Array(days + 1).fill(0);
   (inE.get(n.id) || []).forEach(e => e.tx.forEach(([d, a]) => inD[d] += a));
@@ -531,10 +670,10 @@ function timeline(n){
   let bars = "";
   for (let d = 1; d <= days; d++){
     const hi = inD[d] / mx * (mid - 6), ho = outD[d] / mx * (mid - 6), x = (d - 1) * bw + 1;
-    if (hi) bars += `<rect x="${x}" y="${mid - hi}" width="${Math.max(.5, bw - 2)}" height="${hi}" fill="#1f77b4"><title>${dayLabel(d)}: пришло ${kzt(inD[d])}</title></rect>`;
-    if (ho) bars += `<rect x="${x}" y="${mid}" width="${Math.max(.5, bw - 2)}" height="${ho}" fill="#e4572e"><title>${dayLabel(d)}: ушло ${kzt(outD[d])}</title></rect>`;
+    if (hi) bars += `<rect x="${x}" y="${mid - hi}" width="${Math.max(.5, bw - 2)}" height="${hi}" rx="1" fill="#4aa8ff"><title>${dayLabel(d)}: пришло ${kzt(inD[d])}</title></rect>`;
+    if (ho) bars += `<rect x="${x}" y="${mid}" width="${Math.max(.5, bw - 2)}" height="${ho}" rx="1" fill="#ff8a5b"><title>${dayLabel(d)}: ушло ${kzt(outD[d])}</title></rect>`;
   }
-  return `<h3>Динамика: пришло ↑ / ушло ↓</h3><svg viewBox="0 0 ${W} ${H + 12}" width="100%" role="img" aria-label="Входящие и исходящие суммы по дням"><line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="#d0d5dd"/>${bars}<text x="0" y="${H + 10}" font-size="9" fill="#667085">${M.stats.date_min}</text><text x="${W}" y="${H + 10}" text-anchor="end" font-size="9" fill="#667085">${M.stats.date_max}</text></svg>`;
+  return `<h3>Динамика: пришло ↑ / ушло ↓</h3><svg viewBox="0 0 ${W} ${H + 12}" width="100%" role="img" aria-label="Входящие и исходящие суммы по дням"><line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="#3a4659"/>${bars}<text x="0" y="${H + 10}" font-size="9" fill="#8e9bb0">${S.date_min}</text><text x="${W}" y="${H + 10}" text-anchor="end" font-size="9" fill="#8e9bb0">${S.date_max}</text></svg>`;
 }
 function renderCard(n){
   const cl = DATA.clusters.find(c => c.cluster_id === n.c);
@@ -557,7 +696,7 @@ function renderCard(n){
       <div><span>возвратных циклов</span><b>${n.rc}</b></div><div><span>связей с ключевыми</span><b>${n.kl}</b></div>
       ${trunc}<div><span>кластер</span><b class="lnk" data-cl="${n.c}">#${n.c}</b></div>
     </div>
-    <div class="btns"><button class="btn" id="bReview">${review.has(n.id) ? "✓ В списке проверки" : "+ На проверку"}</button><button class="btn sec" id="bEgo">Связи узла (схема)</button><button class="btn sec" id="bNet">Найти на общей схеме</button></div>
+    <div class="btns"><button class="btn" id="bReview">${review.has(n.id) ? "✓ В списке проверки" : "+ На проверку"}</button><button class="btn sec" id="bEgo">Связи узла</button><button class="btn sec" id="bNet">На общей схеме</button></div>
     <p class="note">${n.tr ? "Исходящие 4-го колена не выгружены: нулевой выход не означает удержание средств. " : ""}${n.sd ? "Входящие seed неполны: out/in не используется для роли транзита. " : ""}Суммы относятся только к видимой выборке. Начальный остаток неизвестен.</p>
     <h3>Почему такой приоритет</h3>${comps(n)}
     ${n.why ? `<p class="note" style="margin-top:8px">${esc(n.why)}</p>` : ""}
@@ -566,6 +705,7 @@ function renderCard(n){
     ${flowTable(outE.get(n.id) || [], "t", "Кому ушло")}
     ${req}
     ${cl ? `<h3>Кластер #${cl.cluster_id} · ${esc(cl.archetype)}</h3><p class="note">${esc(cl.hypothesis)}</p>` : ""}`;
+  $("#t-node").scrollTop = 0;
   $("#bEgo").onclick = () => { setMode("ego"); showEgo(n.id); };
   $("#bReview").onclick = () => toggleReview(n.id);
   $("#bNet").onclick = () => { setMode("net"); selectNode(n.id); };
@@ -573,24 +713,26 @@ function renderCard(n){
   $("#t-node").querySelectorAll("[data-cl]").forEach(b => b.onclick = () => focusCluster(+b.dataset.cl));
 }
 
-// ---------------------------------------------------------------- вкладки
+// ---------------------------------------------------------------- разделы (вертикальная панель)
 function showTab(t){
   [...$("#tabs").children].forEach(button => {
     const active = button.dataset.t === t;
     button.classList.toggle("on", active); button.setAttribute("aria-selected", String(active)); button.tabIndex = active ? 0 : -1;
     $("#t-" + button.dataset.t).hidden = !active;
   });
+  $("#side").scrollTop = 0;
 }
 $("#tabs").querySelectorAll("button").forEach(button => {
   button.id = "tab-" + button.dataset.t; button.setAttribute("role", "tab"); button.setAttribute("aria-controls", "t-" + button.dataset.t);
   const panel = $("#t-" + button.dataset.t); panel.setAttribute("role", "tabpanel"); panel.setAttribute("aria-labelledby", button.id);
 });
-showTab("node");
+showTab("overview");
 $("#tabs").onclick = e => { const button = e.target.closest("[data-t]"); if (button) showTab(button.dataset.t); };
 $("#tabs").onkeydown = event => {
-  if (!["ArrowLeft","ArrowRight","Home","End"].includes(event.key)) return;
+  if (!["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Home","End"].includes(event.key)) return;
   const buttons = [...$("#tabs").children], current = buttons.indexOf(document.activeElement);
-  const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (current + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) % buttons.length;
+  const step = ["ArrowDown","ArrowRight"].includes(event.key) ? 1 : -1;
+  const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (current + step + buttons.length) % buttons.length;
   event.preventDefault(); showTab(buttons[next].dataset.t); buttons[next].focus();
 };
 
@@ -598,8 +740,8 @@ $("#tabs").onkeydown = event => {
 let topRole = "all";
 function renderTop(){
   const list = ranked.filter(n => topRole === "all" || n.r === topRole).slice(0, 50);
-  const chips = ["all", ...M.roles.filter(r => r !== "peripheral")].map(r => `<button class="pill" data-tr="${r}" style="border:0;${topRole === r ? "background:#1c2330;color:#fff" : ""}">${r === "all" ? "все" : RU[r]}</button>`).join("");
-  $("#t-top").innerHTML = `<div class="note">Кого проверять первым: сортировка по priority_score. Клик — карточка узла.</div><div style="margin:8px 0">${chips}</div>
+  const chips = ["all", ...M.roles.filter(r => r !== "peripheral")].map(r => `<button class="pill" data-tr="${r}" style="${topRole === r ? "background:#4aa8ff;color:#08111f" : ""}">${r === "all" ? "все" : RU[r]}</button>`).join("");
+  $("#t-top").innerHTML = `<h3>Топ приоритетов</h3><p class="note">Кого проверять первым: сортировка по priority_score. Клик — карточка клиента, «+» — в список проверки.</p><div style="margin:10px 0">${chips}</div>
     ${list.map(n => `<div class="trow clk" data-g="${n.id}" tabindex="0" aria-label="Открыть ${n.id}"><button class="queue-add" data-add="${n.id}" aria-label="${review.has(n.id) ? "Убрать" : "Добавить"} ${n.id} ${review.has(n.id) ? "из списка" : "на проверку"}">${review.has(n.id) ? "✓" : "+"}</button><div class="trh"><b class="rk">${n.rk}</b><span class="gid">${n.s}</span>${badge(n.r)}${n.sd ? "<span class='pill'>seed</span>" : ""}<span class="num" style="margin-left:auto">${n.p.toFixed(3)}</span></div><div class="note">${esc(n.ev)}</div></div>`).join("")}`;
   $("#t-top").querySelectorAll(".clk").forEach(row => {
     row.onclick = event => { if (!event.target.closest("[data-add]")) selectNode(row.dataset.g); };
@@ -615,7 +757,7 @@ const downloadTitles = {"nodes_roles.csv":"Роли всех узлов · CSV",
 $("#downloads").innerHTML = Object.keys(DATA.exports).map(name => `<button class="btn sec" data-download="${name}">${downloadTitles[name]}</button>`).join("");
 $("#downloads").onclick = event => {
   const name = event.target.dataset.download; if (!name) return;
-  downloadFile(name, (name.endsWith(".csv") ? "\uFEFF" : "") + DATA.exports[name]);
+  downloadFile(name, (name.endsWith(".csv") ? "﻿" : "") + DATA.exports[name]);
 };
 $("#t-quality").innerHTML = `<h3>Проверка требований ТЗ</h3><p class="note">Все проверки выполнены по фактическим выгрузкам при сборке этой страницы. Полный паспорт расчёта, SHA-256 файлов и время выполнения — в validation.json рядом с HTML.</p>
   <div class="metric-cards"><div class="metric-card"><strong>${M.checks.filter(check => check.passed).length}/${M.checks.length}</strong>проверок выгрузок</div><div class="metric-card"><strong>${S.n_tx}</strong>транзакций сверено</div><div class="metric-card"><strong>${S.truncated_nodes}</strong>узла на границе обхода</div><div class="metric-card"><strong>${S.seed_without_outgoing}</strong>seed без исходящих</div></div>
@@ -627,34 +769,35 @@ $("#t-quality").innerHTML = `<h3>Проверка требований ТЗ</h3>
 // кластеры
 function focusCluster(c){
   setMode("net");
+  $("#drawer").hidden = true; selected = null;
   resetFilters();
   $("#clsel").value = c; applyFilters(); clearHL(); applyLabels();
-  cy.fit(cy.nodes(":visible"), 40);
+  fitTo(cy, cy.nodes(":visible"), 40);
 }
-$("#t-clusters").innerHTML = `<div class="note">Louvain на неориентированной проекции (вес — log суммы), модулярность ${M.modularity}. «Устойчивость» — средний Jaccard кластера с лучшим совпадением в 10 перезапусках с другим random seed. Клик — показать кластер.</div><br>` +
-  DATA.clusters.map(c => `<div class="cl" data-c="${c.cluster_id}"><div style="display:flex;gap:8px;align-items:center"><span class="sw" style="background:${clColor(c.cluster_id)}"></span><b>#${c.cluster_id}</b><span class="pill">${esc(c.archetype)}</span><span class="note" style="margin-left:auto">${c.n_nodes} узл. · ${c.n_seed} seed · ${kzt(c.sum_kzt_internal)} · уст. ${c.stability}</span></div><p>${esc(c.hypothesis)}</p></div>`).join("");
+$("#t-clusters").innerHTML = `<h3>Кластеры</h3><p class="note">Louvain на неориентированной проекции (вес — log суммы), модулярность ${M.modularity}. «Устойчивость» — средний Jaccard кластера с лучшим совпадением в 10 перезапусках с другим random seed. Клик — показать кластер на схеме.</p>` +
+  DATA.clusters.map(c => `<div class="cl" data-c="${c.cluster_id}"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="sw" style="background:${clColor(c.cluster_id)}"></span><b>#${c.cluster_id}</b><span class="pill">${esc(c.archetype)}</span><span class="note" style="margin:0 0 0 auto">${c.n_nodes} узл. · ${c.n_seed} seed · ${kzt(c.sum_kzt_internal)} · уст. ${c.stability}</span></div><p>${esc(c.hypothesis)}</p></div>`).join("");
 $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusCluster(+d.dataset.c));
 
 // устойчивость
 (function(){
   const R = DATA.resilience, strat = [...new Set(R.map(r => r.strategy))].filter(s => s !== "без блокировок");
   const base = R.find(r => r.n_removed === 0);
-  const pal = {"наш топ (priority_score)":"#d7263d","топ по обороту":"#7b4fd6","seed с макс. исходящими":"#1b9aaa","случайные":"#98a2b3"};
+  const pal = {"наш топ (priority_score)":"#f25f73","топ по обороту":"#b48cff","seed с макс. исходящими":"#34d3a1","случайные":"#8e9bb0"};
   const Ns = [0, ...new Set(R.filter(r => r.n_removed).map(r => r.n_removed))];
   const W = 380, H = 200, px = n => 34 + (Ns.indexOf(n)) / (Ns.length - 1) * (W - 50), py = v => 10 + (1 - v / base.giant_nodes) * (H - 40);
-  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%"><line x1="34" y1="${H-30}" x2="${W-10}" y2="${H-30}" stroke="#d0d5dd"/>`;
-  Ns.forEach(n => svg += `<text x="${px(n)}" y="${H-16}" font-size="10" fill="#667085" text-anchor="middle">${n}</text>`);
-  [1, 0.75, 0.5].forEach(f => svg += `<text x="0" y="${py(base.giant_nodes*f)+3}" font-size="10" fill="#667085">${Math.round(base.giant_nodes*f)}</text>`);
+  let chart = `<svg viewBox="0 0 ${W} ${H}" width="100%"><line x1="34" y1="${H-30}" x2="${W-10}" y2="${H-30}" stroke="#3a4659"/>`;
+  Ns.forEach(n => chart += `<text x="${px(n)}" y="${H-16}" font-size="10" fill="#8e9bb0" text-anchor="middle">${n}</text>`);
+  [1, 0.75, 0.5].forEach(f => chart += `<text x="0" y="${py(base.giant_nodes*f)+3}" font-size="10" fill="#8e9bb0">${Math.round(base.giant_nodes*f)}</text>`);
   strat.forEach(s => {
     const pts = [[0, base.giant_nodes], ...R.filter(r => r.strategy === s).map(r => [r.n_removed, r.giant_nodes])];
-    svg += `<polyline fill="none" stroke="${pal[s]}" stroke-width="2.2" points="${pts.map(([n, v]) => px(n) + "," + py(v)).join(" ")}"/>`;
+    chart += `<polyline fill="none" stroke="${pal[s]}" stroke-width="2.4" points="${pts.map(([n, v]) => px(n) + "," + py(v)).join(" ")}"/>`;
   });
-  svg += `<text x="${W/2}" y="${H-2}" font-size="10" fill="#667085" text-anchor="middle">сколько узлов заблокировано</text></svg>`;
+  chart += `<text x="${W/2}" y="${H-2}" font-size="10" fill="#8e9bb0" text-anchor="middle">сколько узлов заблокировано</text></svg>`;
   const at = (s, n) => R.find(r => r.strategy === s && r.n_removed === n);
   const ours = at("наш топ (priority_score)", 20), seeds = at("seed с макс. исходящими", 20), rnd = at("случайные", 20);
-  $("#t-res").innerHTML = `<div class="note">Что станет с сетью, если заблокировать N узлов. Метрика — размер гигантской компоненты (узлов, связанных переводами между собой).</div>
+  $("#t-res").innerHTML = `<h3>Устойчивость сети</h3><p class="note">Что станет с сетью, если заблокировать N узлов. Метрика — размер гигантской компоненты (узлов, связанных переводами между собой).</p>
   <div class="ev">Блокировка <b>20</b> узлов из нашего топа: гигантская компонента ${base.giant_nodes} → <b>${ours.giant_nodes}</b>, фрагментов ≥3 узлов ${base.fragments_3plus} → <b>${ours.fragments_3plus}</b>, доля оборота в ней ${pct(base.giant_turnover_share)} → <b>${pct(ours.giant_turnover_share)}</b>.<br>Для сравнения — 20 seed с наибольшими исходящими: ${seeds.giant_nodes} узлов, ${seeds.fragments_3plus} фрагментов; 20 случайных: ${rnd.giant_nodes}.</div>
-  ${svg}<div>${strat.map(s => `<span class="pill"><span class="sw" style="background:${pal[s]}"></span> ${s}</span>`).join("")}</div>
+  ${chart}<div>${strat.map(s => `<span class="pill"><span class="sw" style="background:${pal[s]}"></span> ${s}</span>`).join("")}</div>
   <h3>Таблица</h3><table><tr><th>стратегия</th><th class="num">N</th><th class="num">гигант.</th><th class="num">фрагм.</th><th class="num">оборот в гигант.</th></tr>
   ${R.map(r => `<tr><td>${r.strategy}</td><td class="num">${r.n_removed}</td><td class="num">${r.giant_nodes}</td><td class="num">${r.fragments_3plus}</td><td class="num">${pct(r.giant_turnover_share)}</td></tr>`).join("")}</table>
   <p class="note">Честная оговорка: «топ по обороту» разрушает структуру сопоставимо — крупные хабы и есть наш топ. Разница в том, что наш список объясним ролями и включает точки консолидации с небольшим оборотом, но деньгами многих seed.</p>`;
@@ -664,11 +807,11 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
 (function(){
   const T = M.trunc;
   $("#t-method").innerHTML = `<div class="method">
-  <h3>Роли: формальные правила</h3><div class="note">Правила проверяются по порядку сверху вниз; первая выполненная роль — основная, остальные показываются как «также выполнены». Для основных ролей role_score = 0.5 + 0.5 × сила признака; у терминалов на 4-м колене весь скор умножается на P(сток). У периферии отдельная оценка удалённости от порогов. Это не вероятность виновности.</div>
+  <h3>Роли: формальные правила</h3><p class="note">Правила проверяются по порядку сверху вниз; первая выполненная роль — основная, остальные показываются как «также выполнены». Для основных ролей role_score = 0.5 + 0.5 × сила признака; у терминалов на 4-м колене весь скор умножается на P(сток). У периферии отдельная оценка удалённости от порогов. Это не вероятность виновности.</p>
   <table>${M.rules.map(([r, t]) => `<tr><td>${badge(r)}</td><td>${esc(t)}</td></tr>`).join("")}</table>
-  <h3>Приоритет</h3><div class="note">priority = Σ вес × компонента (каждая 0..1), затем деление на максимум. Seed × 0.85: они уже известны, при равных признаках выше новые узлы.</div>
+  <h3>Приоритет</h3><p class="note">priority = Σ вес × компонента (каждая 0..1), затем деление на максимум. Seed × 0.85: они уже известны, при равных признаках выше новые узлы.</p>
   <table>${Object.entries(M.weights).map(([k, w]) => `<tr><td>${k}</td><td>${w}</td></tr>`).join("")}</table>
-  <h3>Обрыв 4-го колена</h3><div class="note">Логистическая регрессия «передаёт ли узел дальше» обучена на ${T.train_nodes} узлах 1–3 колена (исходящие наблюдаемы) только по признакам входящей стороны. ROC-AUC на кросс-валидации: <b>${T.cv_auc.toFixed(2)}</b>. Из ${T.truncated_nodes} обрезанных узлов ожидаемо настоящих стоков ≈${Math.round(T.expected_true_sinks)} (наивное правило out_deg=0 дало бы ${T.truncated_nodes}).</div>
+  <h3>Обрыв 4-го колена</h3><p class="note">Логистическая регрессия «передаёт ли узел дальше» обучена на ${T.train_nodes} узлах 1–3 колена (исходящие наблюдаемы) только по признакам входящей стороны. ROC-AUC на кросс-валидации: <b>${T.cv_auc.toFixed(2)}</b>. Из ${T.truncated_nodes} обрезанных узлов ожидаемо настоящих стоков ≈${Math.round(T.expected_true_sinks)} (наивное правило out_deg=0 дало бы ${T.truncated_nodes}).</p>
   <table>${Object.entries(T.coefficients).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v > 0 ? "+" : ""}${v}</td></tr>`).join("")}</table>
   <h3>Ограничения данных и как учтены</h3><ul class="note" style="padding-left:18px">
    <li>Только исходящие: вход узла — нижняя оценка. Пропуск out/in у seed не используется для транзита.</li>
@@ -677,7 +820,7 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
    <li>Переводы &lt; 5 000 ₸ не видны: дробление ниже порога не детектируется.</li>
    <li>Кластеры — на неориентированной проекции; направление учтено в ролях.</li>
    <li>Выводы — признаки и гипотезы для проверки, не утверждения о виновности.</li></ul>
-  <h3>Паттерны</h3><div class="note">Возвратные циклы: ${M.n_return_cycles} из ${M.n_cycles} простых циклов длиной ≤6 согласованы по датам (деньги могли пройти круг). FIFO сначала расходует старые поступления; в быстрый транзит входят сопоставления с лагом ≤2 дня. Внутри дня порядок неизвестен. Синхронный сбор — ≥3 разных плательщика в один день.</div></div>`;
+  <h3>Паттерны</h3><p class="note">Возвратные циклы: ${M.n_return_cycles} из ${M.n_cycles} простых циклов длиной ≤6 согласованы по датам (деньги могли пройти круг). FIFO сначала расходует старые поступления; в быстрый транзит входят сопоставления с лагом ≤2 дня. Внутри дня порядок неизвестен. Синхронный сбор — ≥3 разных плательщика в один день.</p></div>`;
 })();
 
 // ---------------------------------------------------------------- ассистент
@@ -693,7 +836,7 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
     "Топ-5 консолидаторов",
     "Какие данные запросить в первую очередь?",
   ].filter(Boolean);
-  box.innerHTML = `<div class="note" id="aiStatus">Проверяю, запущен ли сервер ассистента…</div>
+  box.innerHTML = `<h3>Ассистент аналитика</h3><p class="note" id="aiStatus">Проверяю, запущен ли сервер ассистента…</p>
     <div class="chat" id="chat"></div>
     <div id="exs">${examples.map(q => `<button class="ex">${esc(q)}</button>`).join("")}</div>
     <div class="chatbox"><textarea id="aiq" placeholder="Вопрос о сети на естественном языке…"></textarea><button class="btn" id="aisend">Спросить</button></div>`;
@@ -724,7 +867,6 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
       history.push({role:"user", content:q}, {role:"assistant", content:j.answer});
       if (history.length > 6) history.splice(0, history.length - 6);
       if (j.focus && byId.has(j.focus)) selectNode(j.focus);
-      showTab("ai");
     } catch (e) { wait.remove(); add("a", "Ошибка запроса к серверу: " + e.message); }
     finally { pending = false; $("#aisend").disabled = false; }
   }
@@ -737,47 +879,66 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
   } else $("#aiStatus").innerHTML = "Файл открыт напрямую. Для ассистента запустите <code>python serve.py</code> и откройте http://localhost:8000 — всё остальное работает и так.";
 })();
 
-// ---------------------------------------------------------------- поиск
+// ---------------------------------------------------------------- поиск: gid клиента или кластер
 const q = $("#q"), sugg = $("#sugg");
-let act = 0, matches = [];
+const PLACEHOLDER = {gid:"gid клиента — полный или часть, например 03115284   ( / )", cluster:"Номер кластера или тип: ядро, контур сбора, веерные выплаты…"};
+let qmode = "gid", act = 0, matches = [];
+q.placeholder = PLACEHOLDER.gid;
+$("#qmodes").onclick = e => {
+  const button = e.target.closest("[data-q]"); if (!button) return;
+  qmode = button.dataset.q;
+  [...$("#qmodes").children].forEach(b => { const on = b === button; b.classList.toggle("on", on); b.setAttribute("aria-selected", String(on)); });
+  q.placeholder = PLACEHOLDER[qmode]; q.value = ""; matches = []; hideSuggestions(); q.focus();
+};
 function renderSugg(){
   sugg.hidden = !q.value.trim();
   q.setAttribute("aria-expanded", String(!sugg.hidden));
   if (matches[act]) q.setAttribute("aria-activedescendant", "suggestion-" + act);
   else q.removeAttribute("aria-activedescendant");
-  sugg.innerHTML = matches.length ? matches.map((n, i) => `<div id="suggestion-${i}" role="option" aria-selected="${i === act}" data-g="${n.id}" class="${i === act ? "act" : ""}"><span class="sw" style="background:${COLORS[n.r]}"></span><span class="gid">${n.id}</span><span class="note" style="margin-left:auto">${RU[n.r]} · #${n.rk}</span></div>`).join("") : '<div role="status">Клиент не найден. Проверьте gid.</div>';
+  const row = (m, i) => m.n
+    ? `<div id="suggestion-${i}" role="option" aria-selected="${i === act}" data-g="${m.n.id}" class="${i === act ? "act" : ""}"><span class="sw" style="background:${COLORS[m.n.r]}"></span><span class="gid">${m.n.id}</span><span class="note" style="margin:0 0 0 auto">${RU[m.n.r]} · #${m.n.rk}</span></div>`
+    : `<div id="suggestion-${i}" role="option" aria-selected="${i === act}" data-c="${m.c.cluster_id}" class="${i === act ? "act" : ""}"><span class="sw" style="background:${clColor(m.c.cluster_id)}"></span><b>#${m.c.cluster_id}</b><span>${esc(m.c.archetype)}</span><span class="note" style="margin:0 0 0 auto">${m.c.n_nodes} узл. · ${m.c.n_seed} seed</span></div>`;
+  sugg.innerHTML = matches.length ? matches.map(row).join("") : `<div role="status">${qmode === "gid" ? "Клиент не найден. Проверьте gid." : "Кластер не найден."}</div>`;
 }
 q.oninput = () => {
-  const s = q.value.trim().replace(/\s/g, "");
+  const s = q.value.trim().replace(/\s/g, "").toLowerCase();
   act = 0;
-  matches = s ? ranked.filter(n => n.id.includes(s)).slice(0, 10) : [];
+  if (!s) matches = [];
+  else if (qmode === "gid") matches = ranked.filter(n => n.id.includes(s)).slice(0, 10).map(n => ({n}));
+  else matches = DATA.clusters.filter(c => String(c.cluster_id).startsWith(s.replace("#", "")) || c.archetype.replace(/\s/g, "").includes(s)).slice(0, 10).map(c => ({c}));
   renderSugg();
 };
 q.onkeydown = e => {
   if (e.key === "ArrowDown"){ act = Math.max(0, Math.min(act + 1, matches.length - 1)); renderSugg(); e.preventDefault(); }
   else if (e.key === "ArrowUp"){ act = Math.max(act - 1, 0); renderSugg(); e.preventDefault(); }
-  else if (e.key === "Enter" && matches[act]){ pick(matches[act].id); }
+  else if (e.key === "Enter" && matches[act]){ pick(matches[act]); }
   else if (e.key === "Escape"){ hideSuggestions(); q.blur(); }
 };
-sugg.onclick = e => { const d = e.target.closest("[data-g]"); if (d) pick(d.dataset.g); };
+sugg.onclick = e => {
+  const d = e.target.closest("[data-g],[data-c]"); if (!d) return;
+  pick(d.dataset.g ? {n: byId.get(d.dataset.g)} : {c: DATA.clusters.find(c => c.cluster_id === +d.dataset.c)});
+};
 function hideSuggestions(){ sugg.hidden = true; q.setAttribute("aria-expanded", "false"); q.removeAttribute("aria-activedescendant"); }
-function pick(id){ hideSuggestions(); q.value = id; selectNode(id); }
+function pick(m){
+  hideSuggestions();
+  if (m.n){ q.value = m.n.id; selectNode(m.n.id); }
+  else { q.value = `#${m.c.cluster_id} · ${m.c.archetype}`; focusCluster(m.c.cluster_id); }
+}
 document.addEventListener("keydown", e => {
-  if (e.key === "/" && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA"){ e.preventDefault(); q.focus(); q.select(); }
-  if (e.key === "Escape" && document.activeElement === document.body){ applyFilters(); clearHL(); applyLabels(); }
+  const typing = ["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName);
+  if (e.key === "/" && !typing){ e.preventDefault(); q.focus(); q.select(); }
+  if (e.key === "Escape" && !typing && !$("#drawer").hidden) closeDrawer();
+  else if (e.key === "Escape" && document.activeElement === document.body){ applyFilters(); clearHL(); applyLabels(); }
 });
 document.addEventListener("click", e => { if (!e.target.closest(".search")) hideSuggestions(); });
 new ResizeObserver(() => {
   cy.resize();
-  if (mode === "ego" && egoCy){ egoCy.resize(); egoCy.fit(undefined, 40); }
-  else if (selected){
-    const center = cy.getElementById(selected);
-    cy.fit(center.closedNeighborhood(), 70);
-    if (cy.zoom() > 1.6) cy.zoom({level:1.6, position:center.position()});
-  } else cy.fit(cy.nodes(":visible"), 30);
-}).observe(document.querySelector("main"));
+  if (mode === "ego" && egoCy){ egoCy.resize(); fitTo(egoCy, egoCy.elements(), 40, 2); }
+  else if (selected) fitSelection(cy.getElementById(selected));
+  else fitTo(cy, cy.nodes(":visible"), 24);
+}).observe($("#stage"));
 
-// ссылка вида index.html#<gid> открывает карточку узла
+// ссылка вида index.html#<gid> открывает карточку клиента
 const h = location.hash.slice(1);
 if (byId.has(h)) setTimeout(() => selectNode(h), 50);
 })();
