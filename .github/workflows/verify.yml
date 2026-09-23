@@ -1,5 +1,8 @@
 name: Verify requirements
-on: [push, pull_request]
+# Запуск вручную: вкладка Actions → Verify requirements → Run workflow.
+# Автозапуск на push выключен, чтобы недоступный раннер не ставил коммитам статус «failed».
+on:
+  workflow_dispatch:
 jobs:
   verify:
     runs-on: ubuntu-latest
