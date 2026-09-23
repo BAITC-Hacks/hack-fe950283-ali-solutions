@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 560" width="1280" height="560" font-family="-apple-system, Segoe UI, Roboto, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475467"/>
+    </marker>
+  </defs>
+  <rect width="1280" height="560" fill="#ffffff"/>
+  <text x="40" y="44" font-size="26" font-weight="700" fill="#141a26">Граф денег — схема решения</text>
+  <text x="40" y="70" font-size="14" fill="#667085">python run.py: полный пересчёт от сырых parquet до выгрузок и экрана — ≈4 с на ноутбуке</text>
+
+  <!-- колонки -->
+  <g font-size="13" fill="#1c2330">
+    <!-- 1. Данные -->
+    <rect x="30" y="100" width="260" height="420" rx="12" fill="#f4f5f7" stroke="#d0d5dd"/>
+    <text x="50" y="130" font-size="16" font-weight="700">1. Данные</text>
+    <text x="50" y="160">edges.parquet — 3 119 пар</text>
+    <text x="50" y="182">nodes.parquet — 2 248 узлов, 81 seed</text>
+    <text x="50" y="204">transactions.parquet — 4 840 пер.</text>
+    <text x="50" y="240" font-weight="600">Проверки консистентности</text>
+    <text x="50" y="262">edges = Σ transactions ✓</text>
+    <text x="50" y="284">19 seed без переводов ✓</text>
+    <text x="50" y="320" font-weight="600">Ограничения выгрузки</text>
+    <text x="50" y="342">• только исходящие, 4 колена</text>
+    <text x="50" y="364">• у 4-го колена выход не выгружен</text>
+    <text x="50" y="386">• вход seed занижен</text>
+    <text x="50" y="408">• порог 5 000 ₸</text>
+    <text x="50" y="444" fill="#667085">граф: networkx.DiGraph,</text>
+    <text x="50" y="464" fill="#667085">вес = сумма, n_tx, даты</text>
+
+    <!-- 2. Метрики -->
+    <rect x="340" y="100" width="280" height="420" rx="12" fill="#eef3ff" stroke="#b2c7ff"/>
+    <text x="360" y="130" font-size="16" font-weight="700">2. Метрики узла</text>
+    <text x="360" y="160">плательщики / получатели, ₸, n_tx</text>
+    <text x="360" y="182">пропуск out/in, удержание</text>
+    <text x="360" y="204">seed выше по потоку (≤4 шага)</text>
+    <text x="360" y="226">деньги seed: проп. атрибуция</text>
+    <text x="360" y="248">PageRank по ₸, betweenness</text>
+    <text x="360" y="270">связи с ключевыми узлами</text>
+    <text x="360" y="304" font-weight="600">Время и паттерны</text>
+    <text x="360" y="326">транзит ≤2 дн. (FIFO)</text>
+    <text x="360" y="348">синхронный сбор, дробление</text>
+    <text x="360" y="370">возвратные циклы ≤6 (по датам)</text>
+    <text x="360" y="392">аномалия относительно колена</text>
+    <text x="360" y="426" font-weight="600">Модель обрыва 4-го колена</text>
+    <text x="360" y="448">логрегрессия на коленах 1–3</text>
+    <text x="360" y="470">→ P(сток), ROC-AUC 0.72</text>
+
+    <!-- 3. Роли -->
+    <rect x="670" y="100" width="280" height="420" rx="12" fill="#fff4ea" stroke="#f7c79d"/>
+    <text x="690" y="130" font-size="16" font-weight="700">3. Роли и приоритет</text>
+    <text x="690" y="158" font-weight="600">Правила-пороги (по порядку):</text>
+    <circle cx="698" cy="178" r="6" fill="#d7263d"/><text x="712" y="183">координатор — хаб + ≥5 ключ. связей</text>
+    <circle cx="698" cy="200" r="6" fill="#f28c28"/><text x="712" y="205">консолидатор — ≥4 плательщика</text>
+    <circle cx="698" cy="222" r="6" fill="#7b4fd6"/><text x="712" y="227">распределитель — ≥10 получ.</text>
+    <circle cx="698" cy="244" r="6" fill="#1b9aaa"/><text x="712" y="249">транзит — отдал 80–120%</text>
+    <circle cx="698" cy="266" r="6" fill="#8a5a44"/><text x="712" y="271">конечный — удержал ≥90%</text>
+    <circle cx="698" cy="288" r="6" fill="#b8c0cc"/><text x="712" y="293">периферия — порогов нет</text>
+    <text x="690" y="324">role_score = 0.5 + 0.5 · сила признака</text>
+    <text x="690" y="358" font-weight="600">priority_score =</text>
+    <text x="690" y="380">0.30 роль + 0.20 связь с seed</text>
+    <text x="690" y="402">+ 0.20 оборот + 0.15 сеть</text>
+    <text x="690" y="424">+ 0.15 паттерны</text>
+    <text x="690" y="458" font-weight="600">Кластеры: Louvain (log ₸)</text>
+    <text x="690" y="480">+ устойчивость + гипотеза</text>
+
+    <!-- 4. Выход -->
+    <rect x="1000" y="100" width="250" height="420" rx="12" fill="#ecfdf3" stroke="#a6e4c1"/>
+    <text x="1020" y="130" font-size="16" font-weight="700">4. Аналитику</text>
+    <text x="1020" y="160" font-weight="600">Выгрузки (схема ТЗ)</text>
+    <text x="1020" y="182">nodes_roles.csv · 2 248</text>
+    <text x="1020" y="204">clusters.csv · top_nodes.csv</text>
+    <text x="1020" y="226">report.md · data_requests.csv</text>
+    <text x="1020" y="262" font-weight="600">Экран index.html (офлайн)</text>
+    <text x="1020" y="284">схема сети, роли/кластеры</text>
+    <text x="1020" y="306">поиск по gid, связи узла</text>
+    <text x="1020" y="328">карточка + «почему»</text>
+    <text x="1020" y="350">устойчивость сети</text>
+    <text x="1020" y="386" font-weight="600">AI-ассистент (serve.py)</text>
+    <text x="1020" y="408">LLM + 8 инструментов</text>
+    <text x="1020" y="430">над графом; офлайн-режим</text>
+    <text x="1020" y="452">без ключа</text>
+  </g>
+
+  <g stroke="#475467" stroke-width="2.5" fill="none" marker-end="url(#a)">
+    <path d="M292 310 L336 310"/>
+    <path d="M622 310 L666 310"/>
+    <path d="M952 310 L996 310"/>
+  </g>
+  <text x="640" y="546" font-size="13" fill="#667085" text-anchor="middle">Каждая роль и позиция топа объясняется числами; выводы — гипотезы для проверки, а не утверждения о виновности</text>
+</svg>
