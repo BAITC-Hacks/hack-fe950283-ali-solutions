@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-23T10:52:21.489662+00:00",
+  "generated_at": "2026-09-23T11:16:58.660929+00:00",
   "passed": true,
-  "elapsed_seconds": 4.428,
+  "elapsed_seconds": 4.32,
   "stats": {
     "n_nodes": 2248,
     "n_edges": 3119,
@@ -25,7 +25,7 @@
     "clusters.csv": "a585590ba0f5f2cb08b7fd568dfb97c973c791b1d91518208fef9bd98232339f",
     "clusters_details.csv": "14b4a9c2fc7413a0d79b8ca5f5b2ba2596d6850cca08abf78fc2df2bbb3b2230",
     "data_requests.csv": "f801134374ca7e6656d3a4d4250ec2fe65478be179f23afefed7bcaf3328b6f1",
-    "index.html": "8bde2726801a930d1aa5c8820b402275881b4dfc482d0fa048ccb6521a08783a",
+    "index.html": "08beaffdff68d85445fb94427a233b070b088c14818829f0a48c5e829960c06d",
     "nodes_features.csv": "9223e6d6da9474f276f4430b9bdb2369bee4ae68ed405f79f1c18773625abaad",
     "nodes_roles.csv": "fc033a2f35b8530bfa2e743dd43dfabde5c223726ac5ead82ed6ddcbf6f6e63e",
     "report.md": "1a26e730302b654295a8f2ffaa66c0e888bf52d183b3206e356306315677772c",

@@ -26,15 +26,32 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 #app{display:grid;grid-template-columns:60px 332px minmax(0,1fr);height:100vh}
 
 /* ---------- вертикальная панель разделов */
-#rail{background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:10px;border-right:1px solid #0f141d}
+#rail{position:relative;z-index:60;width:60px;background:var(--rail);display:flex;flex-direction:column;align-items:stretch;padding:14px 9px;gap:10px;border-right:1px solid #0f141d;overflow:hidden;transition:width .16s ease,box-shadow .16s ease}
+.logo-row{display:flex;align-items:center;gap:12px;height:42px;padding-left:4px;white-space:nowrap}
+.logo-row .lbl{color:#fff;font-size:14px;font-weight:700}
 .logo{width:34px;height:34px;border-radius:50%;background:#f4f6f9;display:grid;place-items:center;color:#151b27;flex:none}
 #tabs{display:flex;flex-direction:column;gap:6px;margin-top:6px}
-#tabs button{position:relative;width:42px;height:42px;border:0;border-radius:10px;background:none;color:#7d8aa0;display:grid;place-items:center}
+#tabs button{position:relative;width:100%;height:42px;border:0;border-radius:10px;background:none;color:#7d8aa0;display:flex;align-items:center;gap:13px;padding:0 11px;white-space:nowrap;text-align:left}
+#tabs button svg{flex:none}
 #tabs button:hover{color:var(--ink);background:#1d2533}
 #tabs button.on{color:#fff;background:#253049}
 #tabs button.on::before{content:"";position:absolute;left:-9px;top:10px;bottom:10px;width:3px;border-radius:2px;background:var(--accent)}
+#rail .lbl{opacity:0;transition:opacity .12s ease;font-size:13px;font-weight:600}
+#tabs .lbl-short{display:none}
 #tabs .count{position:absolute;top:3px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;line-height:16px}
 #tabs .count:empty,#tabs .count[data-zero]{display:none}
+/* наведение на панель раскрывает её поверх соседней колонки: видны названия всех разделов */
+@media (min-width: 901px){
+  #rail:hover{width:248px;box-shadow:14px 0 34px rgba(0,0,0,.5)}
+  #rail:hover .lbl{opacity:1}
+  #rail:hover #tabs .count{top:13px;right:10px}
+}
+/* то же для клавиатуры (Tab); отдельным правилом — браузер без :has() не отбросит правило для :hover */
+@media (min-width: 901px){
+  #rail:has(:focus-visible){width:248px;box-shadow:14px 0 34px rgba(0,0,0,.5)}
+  #rail:has(:focus-visible) .lbl{opacity:1}
+  #rail:has(:focus-visible) #tabs .count{top:13px;right:10px}
+}
 
 /* ---------- боковая панель */
 #side{background:var(--side);overflow-y:auto;overflow-x:hidden;border-right:1px solid var(--line);min-height:0}
@@ -168,9 +185,14 @@ svg text{font-family:inherit}
 @media (max-width: 1280px){#app{grid-template-columns:60px 300px minmax(0,1fr)}#drawer{width:390px}.comp span:first-child{width:130px}}
 @media (max-width: 900px){
   #app{grid-template-columns:1fr;grid-template-rows:auto minmax(480px,70vh) auto;height:auto;min-height:100vh}
-  #rail{grid-row:1;flex-direction:row;padding:8px 12px;gap:8px;border-right:0;border-bottom:1px solid #0f141d;overflow-x:auto;position:sticky;top:0;z-index:40}
+  #rail{grid-row:1;flex-direction:row;align-items:center;width:auto;padding:6px 10px 7px;gap:6px;border-right:0;border-bottom:1px solid #0f141d;overflow-x:auto;position:sticky;top:0;z-index:40}
+  .logo-row{padding-left:0;height:auto}
+  .logo-row .lbl{display:none}
   #tabs{flex-direction:row;margin:0}
-  #tabs button.on::before{left:8px;right:8px;top:auto;bottom:-5px;width:auto;height:3px}
+  #tabs button{flex-direction:column;justify-content:center;width:auto;min-width:62px;height:auto;padding:6px 6px 5px;gap:3px}
+  #tabs .lbl{display:none}
+  #tabs .lbl-short{display:block;font-size:10px;font-weight:600}
+  #tabs button.on::before{left:8px;right:8px;top:auto;bottom:-4px;width:auto;height:3px}
   main{grid-row:2;min-height:480px}
   #side{grid-row:3;border-right:0;border-top:1px solid var(--line);overflow:visible}
   .searchbar{padding:8px 12px 10px}
@@ -183,16 +205,16 @@ svg text{font-family:inherit}
 <body>
 <div id="app">
   <nav id="rail" aria-label="Разделы">
-    <div class="logo" title="Граф денег"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2.6"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="20" r="2"/><path d="M6.6 7.3l3.6 3M17.4 7.3l-3.6 3M12 14.6v3.4"/></svg></div>
+    <div class="logo-row"><div class="logo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2.6"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="20" r="2"/><path d="M6.6 7.3l3.6 3M17.4 7.3l-3.6 3M12 14.6v3.4"/></svg></div><span class="lbl">Граф денег</span></div>
     <div id="tabs" role="tablist" aria-orientation="vertical" aria-label="Инструменты аналитика">
-      <button data-t="overview" class="on" title="Обзор сети" aria-label="Обзор сети"></button>
-      <button data-t="top" title="Топ приоритетов" aria-label="Топ приоритетов"></button>
-      <button data-t="review" title="Список проверки" aria-label="Список проверки"></button>
-      <button data-t="clusters" title="Кластеры" aria-label="Кластеры"></button>
-      <button data-t="res" title="Устойчивость сети" aria-label="Устойчивость сети"></button>
-      <button data-t="ai" title="Ассистент" aria-label="Ассистент"></button>
-      <button data-t="quality" title="Качество и проверки ТЗ" aria-label="Качество и проверки ТЗ"></button>
-      <button data-t="method" title="Методика" aria-label="Методика"></button>
+      <button data-t="overview" class="on" aria-label="Обзор сети"></button>
+      <button data-t="top" aria-label="Топ приоритетов"></button>
+      <button data-t="review" aria-label="Список проверки"></button>
+      <button data-t="clusters" aria-label="Кластеры"></button>
+      <button data-t="res" aria-label="Устойчивость сети"></button>
+      <button data-t="ai" aria-label="AI-ассистент"></button>
+      <button data-t="quality" aria-label="Качество и проверки ТЗ"></button>
+      <button data-t="method" aria-label="Методика"></button>
     </div>
   </nav>
 
@@ -390,7 +412,9 @@ M.roles.filter(r => r !== "peripheral").forEach(r => {
   ICON_URI[r] = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="${inkOn(r)}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${GLYPH[r]}</svg>`);
 });
 $("#tabs").querySelectorAll("button").forEach(button => {
-  button.innerHTML = svg(button.dataset.t) + (button.dataset.t === "review" ? '<span class="count" id="reviewCount"></span>' : "");
+  const short = {overview:"Обзор", top:"Топ", review:"Проверка", clusters:"Кластеры", res:"Устойчивость", ai:"AI", quality:"Качество", method:"Методика"}[button.dataset.t];
+  button.innerHTML = svg(button.dataset.t) + `<span class="lbl">${esc(button.getAttribute("aria-label"))}</span><span class="lbl-short">${short}</span>`
+    + (button.dataset.t === "review" ? '<span class="count" id="reviewCount"></span>' : "");
 });
 function setReviewCount(size){ const c = $("#reviewCount"); c.textContent = size || ""; c.toggleAttribute("data-zero", !size); }
 
