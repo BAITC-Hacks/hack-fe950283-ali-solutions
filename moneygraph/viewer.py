@@ -18,6 +18,7 @@ from .fmt import short
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE = ROOT / "viewer" / "template.html"
 CYTOSCAPE = ROOT / "viewer" / "vendor" / "cytoscape.min.js"
+REVIEW = ROOT / "viewer" / "review.js"
 
 ROLE_COLORS = {
     "coordinator": "#d7263d",
@@ -94,7 +95,7 @@ def build(out: Path, G: nx.DiGraph, ctx: dict) -> Path:
             "id": str(g), "s": short(g), "r": r.role, "rs": round(r.role_score, 3), "r2": r.role_secondary,
             "p": round(r.priority_score, 4), "rk": int(r["rank"]), "c": int(r.cluster_id), "sd": int(r.is_seed),
             "d": int(r.depth), "x": pos[g][0], "y": pos[g][1], "ev": r.evidence,
-            "why": r.why if r["rank"] <= 300 else "", "fl": r["flags"],
+            "why": r.why, "fl": r["flags"],
             "ind": int(r.in_deg), "outd": int(r.out_deg), "ink": round(r.in_kzt), "outk": round(r.out_kzt),
             "intx": int(r.in_tx), "outtx": int(r.out_tx),
             "pt": None if pd.isna(r.pass_through) else round(r.pass_through, 3),
@@ -102,13 +103,14 @@ def build(out: Path, G: nx.DiGraph, ctx: dict) -> Path:
             "sk": round(r.seed_kzt_in), "ss": round(r.seed_share, 3), "kl": int(r.key_links),
             "bt": round(r.betweenness, 5), "fs": round(r.fast_in_share, 3),
             "lag": None if pd.isna(r.lag_median_days) else r.lag_median_days,
-            "sync": int(r.sync_payers_max), "syncd": int(r.sync_day), "rc": int(r.n_return_cycles),
+            "sync": int(r.sync_payers_max), "syncd": int(r.sync_day), "syncdate": r.sync_date, "rc": int(r.n_return_cycles),
             "rr": int(r.repeated_routes), "sp": int(r.split_days), "an": int(r.anomaly),
             "cp": [round(r[f"c_{k}"], 3) for k in C.PRIORITY_WEIGHTS], "req": req.get(g, []),
         })
     txs = defaultdict(list)
     for t in ctx["tx"].itertuples(index=False):
-        txs[(t.src, t.dst)].append([int(t.date.day), round(float(t.sum_kzt))])
+        day = (t.date.normalize() - ctx["tx"].date.min().normalize()).days + 1
+        txs[(t.src, t.dst)].append([day, round(float(t.sum_kzt), 2)])
     edges = [{"s": str(u), "t": str(v), "w": round(d["sum_kzt"]), "n": d["n_tx"], "tx": sorted(txs[(u, v)])}
              for u, v, d in G.edges(data=True)]
     data = {
@@ -118,16 +120,20 @@ def build(out: Path, G: nx.DiGraph, ctx: dict) -> Path:
             "weights": C.PRIORITY_WEIGHTS, "role_weight": C.ROLE_WEIGHT,
             "n_cycles": len(ctx["cycles"]), "n_return_cycles": sum(c["returned"] for c in ctx["cycles"]),
             "rules": rules_table(),
+            "checks": [{"passed": bool(passed), "description": text} for passed, text in ctx["checks"]],
+            "dataset_id": "-".join(ctx["input_sha256"].values()),
         },
         "nodes": nodes, "edges": edges,
         "clusters": json.loads(cl.to_json(orient="records", force_ascii=False)),
         "resilience": json.loads(ctx["resilience"].to_json(orient="records", force_ascii=False)),
+        "exports": {name: (out / name).read_text(encoding="utf-8") for name in ("nodes_roles.csv", "clusters.csv", "top_nodes.csv", "data_requests.csv", "report.md")},
     }
     for c in data["clusters"]:
         c["top_gids"] = c["top_gids"].split(";")
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     html = TEMPLATE.read_text(encoding="utf-8")
     html = html.replace("/*__CYTOSCAPE__*/", CYTOSCAPE.read_text(encoding="utf-8"))
+    html = html.replace("/*__REVIEW__*/", REVIEW.read_text(encoding="utf-8"))
     html = html.replace("/*__DATA__*/", f"const DATA = {payload};")
     path = out / "index.html"
     path.write_text(html, encoding="utf-8")

@@ -14,13 +14,13 @@
 [hidden]{display:none!important}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-size:13px}
 button{font:inherit;cursor:pointer}
-#app{display:grid;grid-template-columns:250px 1fr 420px;grid-template-rows:52px 1fr;height:100vh}
+#app{display:grid;grid-template-columns:220px minmax(0,1fr) 450px;grid-template-rows:64px minmax(0,1fr);height:100vh}
 header{grid-column:1/4;display:flex;align-items:center;gap:18px;padding:0 16px;background:#141a26;color:#fff}
 .brand{font-weight:700;font-size:16px;white-space:nowrap}
 .brand small{font-weight:400;color:#9aa4b2;margin-left:6px;font-size:12px}
 #stats{display:flex;gap:16px;color:#c9d1dd;font-size:12px;white-space:nowrap;overflow:hidden}
 #stats b{color:#fff}
-.search{margin-left:auto;position:relative;width:340px}
+.search{margin-left:auto;position:relative;width:340px;min-width:230px}
 .search input{width:100%;padding:8px 10px;border-radius:6px;border:1px solid #2d3748;background:#1f2736;color:#fff;font-size:13px}
 .search input::placeholder{color:#8a94a6}
 #sugg{position:absolute;top:38px;left:0;right:0;background:#fff;color:var(--ink);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:20;max-height:360px;overflow:auto}
@@ -34,7 +34,9 @@ h3:first-child{margin-top:0}
 .seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .seg button{flex:1;padding:6px 4px;border:0;background:#fff;color:var(--ink)}
 .seg button.on{background:var(--ink);color:#fff}
-.rolef label{display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer}
+.rolef label{display:grid;grid-template-columns:14px 12px minmax(0,1fr) auto;align-items:center;gap:6px;padding:4px 0;cursor:pointer}
+.rolef input{margin:0}
+.rolef .role-name{overflow-wrap:anywhere;min-width:0}
 .sw{width:12px;height:12px;border-radius:50%;display:inline-block;flex:none}
 .rolef .cnt{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
 select,input[type=number]{width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;background:#fff;font:inherit}
@@ -47,7 +49,7 @@ main{position:relative;min-width:0}
 .toolbar{position:absolute;top:10px;left:10px;display:flex;gap:6px;z-index:5;flex-wrap:wrap}
 .toolbar button,.toolbar select{background:#fff;border:1px solid var(--line);border-radius:6px;padding:5px 9px;box-shadow:0 1px 2px rgba(0,0,0,.05);width:auto}
 .hint{position:absolute;bottom:10px;left:10px;background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:6px;padding:6px 10px;color:var(--muted);font-size:12px;z-index:5;max-width:70%}
-.tabs{display:flex;border-bottom:1px solid var(--line);flex:none;overflow-x:auto}
+.tabs{display:flex;border-bottom:1px solid var(--line);flex:none;flex-wrap:wrap}
 .tabs button{flex:1;padding:10px 6px;border:0;background:none;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
 .tabs button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
 .tab{padding:14px;overflow:auto;flex:1;min-height:0}
@@ -60,7 +62,8 @@ main{position:relative;min-width:0}
 .card-h .big{font-size:18px;font-weight:700}
 .ev{background:#f8fafc;border-left:3px solid var(--accent);padding:8px 10px;margin:10px 0;line-height:1.45}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin:8px 0}
-.grid div{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:3px 0}
+.grid div{display:flex;justify-content:space-between;gap:6px;min-width:0;border-bottom:1px dashed var(--line);padding:3px 0}
+.grid b{text-align:right;overflow-wrap:normal;flex-shrink:0;max-width:60%}
 .grid span:first-child{color:var(--muted)}
 .bar{height:8px;background:var(--chip);border-radius:4px;overflow:hidden;flex:1}
 .bar i{display:block;height:100%;background:var(--accent)}
@@ -95,7 +98,35 @@ tr.clk:hover{background:#f5f8ff}
 .trh .rk{width:22px;color:var(--muted)}
 .method td:first-child{white-space:nowrap;font-weight:600}
 svg text{font-family:inherit}
-@media (max-width: 1100px){#app{grid-template-columns:200px 1fr 360px}}
+button:active{transform:scale(.98)}
+button:disabled{cursor:default;opacity:.55}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.tabs button{min-height:40px}
+#stats{flex-wrap:wrap;gap:4px 12px;white-space:normal}
+.brand small{display:block;margin:3px 0 0}
+.statusline{font-size:11px;color:var(--muted);line-height:1.5;margin-top:8px}
+.caution{padding:10px 12px;border-bottom:1px solid var(--line);font-size:11px;color:#6d4c12;background:#fffbeb;line-height:1.5;flex:none}
+.download-list{display:grid;gap:5px}
+.download-list button{text-align:left;font-size:12px;padding:7px 9px}
+.review-card{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0}
+.review-card textarea{font:inherit;width:100%;min-height:66px;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:6px;resize:vertical}
+.review-card .gid{overflow-wrap:anywhere}
+.review-card .row button{flex:none}
+.review-card label{display:block;color:var(--muted);font-size:12px;margin-top:8px}
+.metric-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.metric-card{background:#f6f8fb;border:1px solid var(--line);border-radius:8px;padding:12px}
+.metric-card strong{display:block;font-size:22px;font-variant-numeric:tabular-nums;margin-bottom:4px}
+.check{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);line-height:1.5}
+.check b{color:var(--ok)}
+.trow{position:relative;padding-right:36px}
+.trow .queue-add{position:absolute;right:2px;top:6px;min-width:30px;min-height:30px;border:1px solid var(--line);background:white;border-radius:6px;color:var(--accent);font-size:18px}
+#filterSummary{padding:8px 0;color:var(--muted);font-size:12px}
+#notice{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:30;background:#182230;color:#fff;padding:10px 16px;border-radius:8px;max-width:min(90vw,560px);box-shadow:0 4px 20px #0002}
+#emptyGraph{position:absolute;top:35%;left:15%;right:15%;text-align:center;background:#fff;border:1px solid var(--line);padding:20px;border-radius:8px;z-index:6}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+@media (max-width: 1200px){#app{grid-template-columns:220px minmax(0,1fr) 390px}.brand small{display:none}header{gap:12px}.comp span:first-child{width:130px}}
+@media (max-width: 920px){#app{height:auto;min-height:100vh;grid-template-columns:190px minmax(0,1fr);grid-template-rows:auto 65vh auto}header{grid-column:1/3;flex-wrap:wrap;padding:12px}#stats{order:3;width:100%}#right{grid-column:1/3;min-height:520px}.tab{max-height:720px}#left{grid-column:1}main{grid-column:2}.search{width:min(340px,55vw)}}
+@media (max-width: 560px){#app{display:flex;flex-direction:column}header{align-items:flex-start}.search{width:100%;min-width:0;order:2}.brand small{display:block}main{height:54vh;min-height:330px;order:2}#left{order:3;max-height:310px;border-top:1px solid var(--line)}#right{order:4;min-height:560px}.hint{max-width:90%;font-size:11px}.tab{padding:12px}.tabs button{padding:10px 8px}.grid{gap:6px 10px}}
 </style>
 </head>
 <body>
@@ -104,8 +135,8 @@ svg text{font-family:inherit}
     <div class="brand">Граф денег<small>AML-анализ транзакционной сети</small></div>
     <div id="stats"></div>
     <div class="search">
-      <input id="q" placeholder="Поиск по gid — полный или часть (клавиша /)" autocomplete="off" spellcheck="false">
-      <div id="sugg" hidden></div>
+      <input id="q" aria-label="Поиск по gid" role="combobox" aria-expanded="false" aria-controls="sugg" aria-autocomplete="list" placeholder="Поиск по gid — полный или часть (клавиша /)" autocomplete="off" spellcheck="false">
+      <div id="sugg" role="listbox" aria-label="Результаты поиска" hidden></div>
     </div>
   </header>
 
@@ -118,10 +149,12 @@ svg text{font-family:inherit}
     <div class="rolef" id="rolef"></div>
     <h3>Фильтры</h3>
     <div class="row"><label style="flex:1">Кластер</label></div>
-    <select id="clsel"></select>
+    <select id="clsel" aria-label="Фильтр по кластеру"></select>
     <div class="row" style="margin-top:10px"><label style="flex:1">Только топ-N по приоритету</label></div>
-    <select id="topn"><option value="0">все узлы</option><option value="20">топ-20</option><option value="50">топ-50</option><option value="100">топ-100</option><option value="300">топ-300</option></select>
+    <select id="topn" aria-label="Фильтр по приоритету"><option value="0">все узлы</option><option value="20">топ-20</option><option value="50">топ-50</option><option value="100">топ-100</option><option value="300">топ-300</option></select>
     <div class="row"><label><input type="checkbox" id="seedonly"> только связи seed</label></div>
+    <button class="btn sec" id="resetFilters">Сбросить фильтры</button>
+    <div id="filterSummary" role="status"></div>
     <h3>Легенда</h3>
     <div class="legend">
       <div><i class="sw" style="background:#fff;border:3px solid #111"></i>seed — клиент из списка правоохранителей</div>
@@ -131,18 +164,22 @@ svg text{font-family:inherit}
       <div><i style="width:18px;height:3px;background:var(--in)"></i>откуда пришли деньги</div>
       <div><i style="width:18px;height:3px;background:var(--out)"></i>куда ушли деньги</div>
     </div>
+    <h3>Выгрузки</h3>
+    <div class="download-list" id="downloads"></div>
+    <p class="statusline">Данные и расчёт хранятся локально. Для Excel импортируйте gid как текст — это 18-значный идентификатор.</p>
   </aside>
 
   <main>
     <div id="cy"></div>
     <div id="cyEgo" hidden></div>
+    <div id="emptyGraph" hidden><b>Нет узлов по выбранным фильтрам</b><p class="note">Сбросьте фильтры или найдите клиента по gid.</p><button class="btn sec" id="emptyReset">Сбросить фильтры</button></div>
     <div class="toolbar" id="tbNet">
       <button id="fit">Показать всё</button>
       <button id="labels">Подписи: топ</button>
     </div>
     <div class="toolbar" id="tbEgo" hidden>
       <button id="egoBack">← Вся сеть</button>
-      <select id="hops"><option value="1">1 шаг</option><option value="2" selected>2 шага</option><option value="3">3 шага</option></select>
+      <select id="hops" aria-label="Глубина связей"><option value="1" selected>1 шаг</option><option value="2">2 шага</option><option value="3">3 шага</option></select>
       <select id="dir"><option value="both">вверх и вниз</option><option value="up">откуда деньги</option><option value="down">куда деньги</option></select>
       <button id="egoFit">Вписать</button>
     </div>
@@ -150,8 +187,9 @@ svg text{font-family:inherit}
   </main>
 
   <aside id="right">
-    <nav class="tabs" id="tabs">
-      <button data-t="node" class="on">Узел</button><button data-t="top">Топ</button><button data-t="clusters">Кластеры</button><button data-t="res">Устойчивость</button><button data-t="ai">Ассистент</button><button data-t="method">Методика</button>
+    <div class="caution">Роли — гипотезы для проверки. Скор не является вероятностью виновности. По 4-му колену исходящие неизвестны.</div>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Инструменты аналитика">
+      <button data-t="node" class="on">Узел</button><button data-t="top">Топ</button><button data-t="review">Проверка <span id="reviewCount">0</span></button><button data-t="clusters">Кластеры</button><button data-t="res">Устойчивость</button><button data-t="ai">Ассистент</button><button data-t="quality">Качество</button><button data-t="method">Методика</button>
     </nav>
     <div class="tab" id="t-node"><div class="empty">Выберите узел на схеме,<br>в поиске или во вкладке «Топ».</div></div>
     <div class="tab" id="t-top" hidden></div>
@@ -159,10 +197,14 @@ svg text{font-family:inherit}
     <div class="tab" id="t-res" hidden></div>
     <div class="tab" id="t-ai" hidden></div>
     <div class="tab" id="t-method" hidden></div>
+    <div class="tab" id="t-review" hidden></div>
+    <div class="tab" id="t-quality" hidden></div>
   </aside>
 </div>
+<div id="notice" role="status" hidden></div>
 
 <script>/*__CYTOSCAPE__*/</script>
+<script>/*__REVIEW__*/</script>
 <script>
 /*__DATA__*/
 (function(){
@@ -181,9 +223,76 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function kzt(x){ x = +x || 0; if (x >= 1e6) return (x/1e6).toFixed(1).replace(".0","") + " млн ₸"; if (x >= 1e3) return Math.round(x/1e3) + " тыс ₸"; return Math.round(x) + " ₸"; }
 const pct = x => x == null ? "—" : Math.round(x*100) + "%";
-const badge = r => `<span class="badge" style="background:${COLORS[r]}">${RU[r]}</span>`;
+const badge = r => `<span class="badge" style="background:${COLORS[r]};color:${["peripheral","consolidator","transit"].includes(r) ? "#141a26" : "#fff"}">${RU[r]}</span>`;
 
 let selected = null, mode = "net", colorBy = "role", labelsMode = "top";
+const Review = MoneyGraphReview;
+const storageKey = "moneygraph-review-v1:" + M.dataset_id;
+let review = new Map(), noticeTimer;
+function notify(message){
+  clearTimeout(noticeTimer);
+  $("#notice").textContent = message;
+  $("#notice").hidden = false;
+  noticeTimer = setTimeout(() => { $("#notice").hidden = true; }, 5000);
+}
+try { review = Review.restore(localStorage.getItem(storageKey), new Set(byId.keys())); }
+catch { notify("Хранилище браузера недоступно или список повреждён. Экспортируйте список перед закрытием."); }
+function downloadFile(filename, content, type = "text/plain;charset=utf-8"){
+  const url = URL.createObjectURL(new Blob([content], {type}));
+  const link = document.createElement("a");
+  link.href = url; link.download = filename;
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function saveReview(refresh = true){
+  try { localStorage.setItem(storageKey, JSON.stringify([...review.values()])); }
+  catch { notify("Не удалось сохранить в браузере. Скачайте JSON, чтобы не потерять заметки."); }
+  $("#reviewCount").textContent = review.size;
+  if (refresh){ renderReview(); renderTop(); }
+  const button = $("#bReview");
+  if (button) button.textContent = review.has(selected) ? "✓ В списке проверки" : "+ На проверку";
+}
+function toggleReview(id){
+  if (review.has(id)) review.delete(id);
+  else review.set(id, {gid:id, status:"new", note:""});
+  saveReview();
+  notify(review.has(id) ? "Клиент добавлен в список проверки" : "Клиент убран из списка проверки");
+}
+function renderReview(){
+  const records = [...review.values()].sort((first, second) => byId.get(first.gid).rk - byId.get(second.gid).rk);
+  $("#reviewCount").textContent = records.length;
+  const requests = records.reduce((total, record) => total + byId.get(record.gid).req.length, 0);
+  $("#t-review").innerHTML = `<h3>Список углублённой проверки</h3><p class="note">Выберите клиентов в карточке или топ-листе. Заметки сохраняются в этом браузере отдельно для этой выгрузки. Статус «Рассмотрен» не означает подтверждение гипотезы.</p>
+    <div class="metric-cards"><div class="metric-card"><strong>${records.length}</strong>клиентов выбрано</div><div class="metric-card"><strong>${requests}</strong>рекомендаций по данным</div></div>
+    <div class="btns"><button class="btn" id="reviewCsv" ${records.length ? "" : "disabled"}>Скачать CSV</button><button class="btn sec" id="reviewMemo" ${records.length ? "" : "disabled"}>Справка для проверки</button><button class="btn sec" id="reviewJson" ${records.length ? "" : "disabled"}>Сохранить JSON</button><button class="btn sec" id="reviewImport">Загрузить JSON</button><input id="reviewFile" type="file" accept=".json,application/json" hidden></div>
+    ${records.length ? records.map(record => { const node = byId.get(record.gid); return `<article class="review-card"><div class="row"><button class="btn sec gid" data-open="${node.id}">${node.id}</button><span class="note">#${node.rk}</span><button class="btn sec" data-remove="${node.id}" aria-label="Убрать ${node.id} из списка">×</button></div>${badge(node.r)}<p class="note">${esc(node.ev)}</p><label>Статус проверки<select data-status="${node.id}">${Object.entries(Review.statuses).map(([value, title]) => `<option value="${value}" ${value === record.status ? "selected" : ""}>${title}</option>`).join("")}</select></label><label>Заметка аналитика<textarea data-note="${node.id}" maxlength="2000" placeholder="Что проверить по этому клиенту">${esc(record.note)}</textarea></label>${node.req.length ? `<p class="note">Следующий запрос: ${esc(node.req[0])}</p>` : ""}</article>`; }).join("") : '<div class="empty">Пока никто не выбран.<br>Откройте «Топ» и нажмите + рядом с клиентом.</div>'}`;
+  $("#t-review").querySelectorAll("[data-open]").forEach(button => button.onclick = () => selectNode(button.dataset.open));
+  $("#t-review").querySelectorAll("[data-remove]").forEach(button => button.onclick = () => toggleReview(button.dataset.remove));
+  $("#t-review").querySelectorAll("[data-status]").forEach(input => input.onchange = () => { review.get(input.dataset.status).status = input.value; saveReview(false); });
+  $("#t-review").querySelectorAll("[data-note]").forEach(input => input.oninput = () => { review.get(input.dataset.note).note = input.value; saveReview(false); });
+  $("#reviewCsv").onclick = () => downloadFile("review_list.csv", Review.toCsv(new Map(records.map(record => [record.gid, record])), byId), "text/csv;charset=utf-8");
+  $("#reviewJson").onclick = () => downloadFile("review_list.json", JSON.stringify({dataset_id:M.dataset_id, records}, null, 2), "application/json");
+  $("#reviewMemo").onclick = () => {
+    const lines = ["# Справка для углублённой проверки", "", `Период: ${M.stats.date_min} — ${M.stats.date_max}. Выбрано клиентов: ${records.length}.`, "", "Роли являются гипотезами. Виновность, источник средств и назначение операций не установлены. Входящие неполны, 4-е колено обрезано; не видны наличные, межбанк и переводы ниже 5 000 KZT.", ""];
+    records.forEach(record => {
+      const node = byId.get(record.gid);
+      lines.push(`## ${node.id}`, `Роль: ${RU[node.r]}. Приоритет: ${node.p}. Статус: ${Review.statuses[record.status]}.`, "", node.ev, "", node.why, "", "Запросить: " + (node.req.join("; ") || "дополнительные сведения по решению аналитика"), "", "Заметка аналитика: " + (record.note || "не добавлена"), "");
+    });
+    downloadFile("review_memo.md", lines.join("\n"), "text/markdown;charset=utf-8");
+  };
+  $("#reviewImport").onclick = () => $("#reviewFile").click();
+  $("#reviewFile").onchange = async event => {
+    const file = event.target.files[0]; if (!file) return;
+    try {
+      if (file.size > 2_000_000) throw new Error("Файл больше 2 МБ");
+      const payload = JSON.parse(await file.text());
+      if (payload.dataset_id !== M.dataset_id) throw new Error("Этот список относится к другой выгрузке");
+      const imported = Review.restore(JSON.stringify(payload.records), new Set(byId.keys()));
+      imported.forEach((record, id) => review.set(id, record));
+      saveReview(); notify(`Загружено клиентов: ${imported.size}`);
+    } catch (error){ notify("Не удалось загрузить список: " + error.message); }
+  };
+}
 
 // ---------------------------------------------------------------- header
 const S = M.stats;
@@ -252,12 +361,19 @@ cy.on("tap", ev => { if (ev.target === cy){ clearHL(); applyLabels(); } });
 // ---------------------------------------------------------------- filters
 const roleOn = new Set(M.roles);
 const counts = {}; DATA.nodes.forEach(n => counts[n.r] = (counts[n.r] || 0) + 1);
-$("#rolef").innerHTML = M.roles.map(r => `<label><input type="checkbox" data-r="${r}" checked><span class="sw" style="background:${COLORS[r]}"></span>${RU[r]}<span class="cnt">${counts[r]||0}</span></label>`).join("");
+$("#rolef").innerHTML = M.roles.map(r => `<label><input type="checkbox" data-r="${r}" checked><span class="sw" style="background:${COLORS[r]}"></span><span class="role-name">${RU[r]}</span><span class="cnt">${counts[r]||0}</span></label>`).join("");
 $("#rolef").onchange = e => { const r = e.target.dataset.r; e.target.checked ? roleOn.add(r) : roleOn.delete(r); applyFilters(); };
 $("#clsel").innerHTML = `<option value="-1">все кластеры</option>` + DATA.clusters.map(c => `<option value="${c.cluster_id}">#${c.cluster_id} · ${esc(c.archetype)} · ${c.n_nodes} узл., ${c.n_seed} seed</option>`).join("");
 $("#clsel").onchange = () => { applyFilters(); cy.fit(cy.nodes(":visible"), 40); };
 $("#topn").onchange = applyFilters;
 $("#seedonly").onchange = applyFilters;
+function resetFilters(){
+  M.roles.forEach(role => roleOn.add(role));
+  $("#rolef").querySelectorAll("input").forEach(input => input.checked = true);
+  $("#clsel").value = "-1"; $("#topn").value = "0"; $("#seedonly").checked = false;
+  applyFilters(); clearHL(); applyLabels();
+}
+$("#resetFilters").onclick = $("#emptyReset").onclick = () => { resetFilters(); cy.fit(cy.nodes(":visible"), 30); };
 function applyFilters(){
   const cl = +$("#clsel").value, topn = +$("#topn").value, seedOnly = $("#seedonly").checked;
   const seedNb = new Set();
@@ -269,7 +385,11 @@ function applyFilters(){
       el.toggleClass("hide", !vis);
     });
   });
+  const visible = cy.nodes().not(".hide").length;
+  $("#filterSummary").textContent = `Показано ${visible} из ${DATA.nodes.length} узлов`;
+  $("#emptyGraph").hidden = visible > 0 || mode === "ego";
 }
+applyFilters();
 $("#colorby").onclick = e => {
   const c = e.target.dataset.c; if (!c) return;
   colorBy = c; [...$("#colorby").children].forEach(b => b.classList.toggle("on", b.dataset.c === c));
@@ -335,10 +455,11 @@ function showEgo(id){
   egoCy.on("tap", "node", ev => { if (!ev.target.data("more")) selectNode(ev.target.id(), false); });
   egoCy.on("dbltap", "node", ev => { if (!ev.target.data("more")) selectNode(ev.target.id(), true); });
   const n = byId.get(id);
-  $("#hint").innerHTML = `Связи узла <b class="gid">${n.id}</b>: слева — кто платил (синие рёбра), справа — кому ушло (оранжевые). Подписи рёбер — сумма за июль. Двойной клик — перейти к соседу.`;
+  $("#hint").innerHTML = `Связи узла <b class="gid">${n.id}</b>: слева — кто платил (синие рёбра), справа — кому ушло (оранжевые). Суммы за весь период. Показаны до ${MAX_PER_LEVEL} узлов на слой; +N — скрытые узлы. Двойной клик — перейти к соседу.`;
 }
 function setMode(m){
   mode = m;
+  $("#emptyGraph").hidden = m === "ego" || cy.nodes().not(".hide").length > 0;
   [...$("#mode").children].forEach(b => b.classList.toggle("on", b.dataset.m === m));
   $("#cyEgo").hidden = m !== "ego"; $("#tbEgo").hidden = m !== "ego"; $("#tbNet").hidden = m === "ego";
   if (m === "ego"){
@@ -362,9 +483,12 @@ function selectNode(id, recenterEgo = true){
   highlight(id);
   if (mode === "net"){
     const el = cy.getElementById(id);
-    el.closedNeighborhood().removeClass("hide");
+    if (el.closedNeighborhood("node").some(node => node.hasClass("hide"))){
+      resetFilters(); highlight(id); notify("Фильтры сброшены, чтобы показать узел и его связи");
+    }
     const nb = el.closedNeighborhood();
-    cy.animate({fit:{eles:nb, padding:70}}, {duration:350, complete:() => { if (cy.zoom() > 1.6) cy.zoom({level:1.6, position:el.position()}); }});
+    cy.fit(nb, 70);
+    if (cy.zoom() > 1.6) cy.zoom({level:1.6, position:el.position()});
   } else if (recenterEgo) showEgo(id);
   else if (egoCy){ egoCy.nodes().removeClass("sel"); egoCy.getElementById(id).addClass("sel"); }
   renderCard(n);
@@ -388,17 +512,20 @@ function flowTable(list, key, title){
   return `<h3>${title} (${list.length})</h3><table><tr><th>gid</th><th>роль</th><th class="num">сумма</th><th class="num">пер.</th></tr>${rows}${more}</table>`;
 }
 function timeline(n){
-  const inD = new Array(32).fill(0), outD = new Array(32).fill(0);
+  const periodStart = Date.parse(M.stats.date_min + "T00:00:00Z");
+  const days = Math.round((Date.parse(M.stats.date_max + "T00:00:00Z") - periodStart) / 86400000) + 1;
+  const dayLabel = day => new Date(periodStart + (day - 1) * 86400000).toISOString().slice(0,10);
+  const inD = new Array(days + 1).fill(0), outD = new Array(days + 1).fill(0);
   (inE.get(n.id) || []).forEach(e => e.tx.forEach(([d, a]) => inD[d] += a));
   (outE.get(n.id) || []).forEach(e => e.tx.forEach(([d, a]) => outD[d] += a));
-  const mx = Math.max(1, ...inD, ...outD), W = 380, H = 96, bw = W / 31, mid = H / 2;
+  const mx = Math.max(1, ...inD, ...outD), W = 380, H = 96, bw = W / days, mid = H / 2;
   let bars = "";
-  for (let d = 1; d <= 31; d++){
+  for (let d = 1; d <= days; d++){
     const hi = inD[d] / mx * (mid - 6), ho = outD[d] / mx * (mid - 6), x = (d - 1) * bw + 1;
-    if (hi) bars += `<rect x="${x}" y="${mid - hi}" width="${bw - 2}" height="${hi}" fill="#1f77b4"><title>${d}.07: пришло ${kzt(inD[d])}</title></rect>`;
-    if (ho) bars += `<rect x="${x}" y="${mid}" width="${bw - 2}" height="${ho}" fill="#e4572e"><title>${d}.07: ушло ${kzt(outD[d])}</title></rect>`;
+    if (hi) bars += `<rect x="${x}" y="${mid - hi}" width="${Math.max(.5, bw - 2)}" height="${hi}" fill="#1f77b4"><title>${dayLabel(d)}: пришло ${kzt(inD[d])}</title></rect>`;
+    if (ho) bars += `<rect x="${x}" y="${mid}" width="${Math.max(.5, bw - 2)}" height="${ho}" fill="#e4572e"><title>${dayLabel(d)}: ушло ${kzt(outD[d])}</title></rect>`;
   }
-  return `<h3>Динамика за июль: пришло ↑ / ушло ↓</h3><svg viewBox="0 0 ${W} ${H + 12}" width="100%"><line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="#d0d5dd"/>${bars}<text x="0" y="${H + 10}" font-size="9" fill="#667085">1.07</text><text x="${W - 22}" y="${H + 10}" font-size="9" fill="#667085">31.07</text></svg>`;
+  return `<h3>Динамика: пришло ↑ / ушло ↓</h3><svg viewBox="0 0 ${W} ${H + 12}" width="100%" role="img" aria-label="Входящие и исходящие суммы по дням"><line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="#d0d5dd"/>${bars}<text x="0" y="${H + 10}" font-size="9" fill="#667085">${M.stats.date_min}</text><text x="${W}" y="${H + 10}" text-anchor="end" font-size="9" fill="#667085">${M.stats.date_max}</text></svg>`;
 }
 function renderCard(n){
   const cl = DATA.clusters.find(c => c.cluster_id === n.c);
@@ -413,15 +540,16 @@ function renderCard(n){
     <div>${flags}</div>
     <div class="grid">
       <div><span>приоритет</span><b>${n.p.toFixed(3)}</b></div><div><span>уверенность роли</span><b>${n.rs.toFixed(2)}</b></div>
-      <div><span>получено</span><b>${kzt(n.ink)}</b></div><div><span>отправлено</span><b>${kzt(n.outk)}</b></div>
-      <div><span>плательщиков</span><b>${n.ind}</b></div><div><span>получателей</span><b>${n.outd}</b></div>
-      <div><span>пропуск out/in</span><b>${n.pt == null ? "—" : pct(n.pt)}</b></div><div><span>колено</span><b>${n.d}</b></div>
+      <div><span>получено</span><b>${kzt(n.ink)}</b></div><div><span>отправлено</span><b>${n.tr ? "не выгружено" : kzt(n.outk)}</b></div>
+      <div><span>плательщиков</span><b>${n.ind}</b></div><div><span>получателей</span><b>${n.tr ? "неизвестно" : n.outd}</b></div>
+      <div><span>пропуск out/in</span><b>${n.sd || n.tr || n.pt == null ? "не оценён" : pct(n.pt)}</b></div><div><span>колено</span><b>${n.d}</b></div>
       <div><span>seed выше по потоку</span><b>${n.su}</b></div><div><span>деньги seed (атриб.)</span><b>${kzt(n.sk)}</b></div>
-      <div><span>ушло ≤2 дн.</span><b>${pct(n.fs)}</b></div><div><span>синхр. плательщиков</span><b>${n.sync}${n.sync > 1 ? " (" + n.syncd + ".07)" : ""}</b></div>
+      <div><span>возможный транзит ≤2 дн.</span><b>${n.tr ? "неизвестно" : pct(n.fs)}</b></div><div><span>синхр. плательщиков</span><b>${n.sync}${n.sync > 1 ? " (" + n.syncdate + ")" : ""}</b></div>
       <div><span>возвратных циклов</span><b>${n.rc}</b></div><div><span>связей с ключевыми</span><b>${n.kl}</b></div>
       ${trunc}<div><span>кластер</span><b class="lnk" data-cl="${n.c}">#${n.c}</b></div>
     </div>
-    <div class="btns"><button class="btn" id="bEgo">Связи узла (схема)</button><button class="btn sec" id="bNet">Найти на общей схеме</button></div>
+    <div class="btns"><button class="btn" id="bReview">${review.has(n.id) ? "✓ В списке проверки" : "+ На проверку"}</button><button class="btn sec" id="bEgo">Связи узла (схема)</button><button class="btn sec" id="bNet">Найти на общей схеме</button></div>
+    <p class="note">${n.tr ? "Исходящие 4-го колена не выгружены: нулевой выход не означает удержание средств. " : ""}${n.sd ? "Входящие seed неполны: out/in не используется для роли транзита. " : ""}Суммы относятся только к видимой выборке. Начальный остаток неизвестен.</p>
     <h3>Почему такой приоритет</h3>${comps(n)}
     ${n.why ? `<p class="note" style="margin-top:8px">${esc(n.why)}</p>` : ""}
     ${timeline(n)}
@@ -430,6 +558,7 @@ function renderCard(n){
     ${req}
     ${cl ? `<h3>Кластер #${cl.cluster_id} · ${esc(cl.archetype)}</h3><p class="note">${esc(cl.hypothesis)}</p>` : ""}`;
   $("#bEgo").onclick = () => { setMode("ego"); showEgo(n.id); };
+  $("#bReview").onclick = () => toggleReview(n.id);
   $("#bNet").onclick = () => { setMode("net"); selectNode(n.id); };
   $("#t-node").querySelectorAll("tr.clk").forEach(tr => tr.onclick = () => selectNode(tr.dataset.g));
   $("#t-node").querySelectorAll("[data-cl]").forEach(b => b.onclick = () => focusCluster(+b.dataset.cl));
@@ -437,10 +566,24 @@ function renderCard(n){
 
 // ---------------------------------------------------------------- вкладки
 function showTab(t){
-  [...$("#tabs").children].forEach(b => b.classList.toggle("on", b.dataset.t === t));
-  ["node","top","clusters","res","ai","method"].forEach(k => $("#t-" + k).hidden = k !== t);
+  [...$("#tabs").children].forEach(button => {
+    const active = button.dataset.t === t;
+    button.classList.toggle("on", active); button.setAttribute("aria-selected", String(active)); button.tabIndex = active ? 0 : -1;
+    $("#t-" + button.dataset.t).hidden = !active;
+  });
 }
-$("#tabs").onclick = e => { if (e.target.dataset.t) showTab(e.target.dataset.t); };
+$("#tabs").querySelectorAll("button").forEach(button => {
+  button.id = "tab-" + button.dataset.t; button.setAttribute("role", "tab"); button.setAttribute("aria-controls", "t-" + button.dataset.t);
+  const panel = $("#t-" + button.dataset.t); panel.setAttribute("role", "tabpanel"); panel.setAttribute("aria-labelledby", button.id);
+});
+showTab("node");
+$("#tabs").onclick = e => { const button = e.target.closest("[data-t]"); if (button) showTab(button.dataset.t); };
+$("#tabs").onkeydown = event => {
+  if (!["ArrowLeft","ArrowRight","Home","End"].includes(event.key)) return;
+  const buttons = [...$("#tabs").children], current = buttons.indexOf(document.activeElement);
+  const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (current + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) % buttons.length;
+  event.preventDefault(); showTab(buttons[next].dataset.t); buttons[next].focus();
+};
 
 // топ
 let topRole = "all";
@@ -448,15 +591,34 @@ function renderTop(){
   const list = ranked.filter(n => topRole === "all" || n.r === topRole).slice(0, 50);
   const chips = ["all", ...M.roles.filter(r => r !== "peripheral")].map(r => `<button class="pill" data-tr="${r}" style="border:0;${topRole === r ? "background:#1c2330;color:#fff" : ""}">${r === "all" ? "все" : RU[r]}</button>`).join("");
   $("#t-top").innerHTML = `<div class="note">Кого проверять первым: сортировка по priority_score. Клик — карточка узла.</div><div style="margin:8px 0">${chips}</div>
-    ${list.map(n => `<div class="trow clk" data-g="${n.id}"><div class="trh"><b class="rk">${n.rk}</b><span class="gid">${n.s}</span>${badge(n.r)}${n.sd ? "<span class='pill'>seed</span>" : ""}<span class="num" style="margin-left:auto">${n.p.toFixed(3)}</span></div><div class="note">${esc(n.ev)}</div></div>`).join("")}`;
-  $("#t-top").querySelectorAll(".clk").forEach(tr => tr.onclick = () => selectNode(tr.dataset.g));
+    ${list.map(n => `<div class="trow clk" data-g="${n.id}" tabindex="0" aria-label="Открыть ${n.id}"><button class="queue-add" data-add="${n.id}" aria-label="${review.has(n.id) ? "Убрать" : "Добавить"} ${n.id} ${review.has(n.id) ? "из списка" : "на проверку"}">${review.has(n.id) ? "✓" : "+"}</button><div class="trh"><b class="rk">${n.rk}</b><span class="gid">${n.s}</span>${badge(n.r)}${n.sd ? "<span class='pill'>seed</span>" : ""}<span class="num" style="margin-left:auto">${n.p.toFixed(3)}</span></div><div class="note">${esc(n.ev)}</div></div>`).join("")}`;
+  $("#t-top").querySelectorAll(".clk").forEach(row => {
+    row.onclick = event => { if (!event.target.closest("[data-add]")) selectNode(row.dataset.g); };
+    row.onkeydown = event => { if (event.target === row && ["Enter"," "].includes(event.key)){ event.preventDefault(); selectNode(row.dataset.g); } };
+  });
+  $("#t-top").querySelectorAll("[data-add]").forEach(button => button.onclick = event => { event.stopPropagation(); toggleReview(button.dataset.add); });
   $("#t-top").querySelectorAll("[data-tr]").forEach(b => b.onclick = () => { topRole = b.dataset.tr; renderTop(); });
 }
 renderTop();
+renderReview();
+
+const downloadTitles = {"nodes_roles.csv":"Роли всех узлов · CSV", "clusters.csv":"Кластеры · CSV", "top_nodes.csv":"Топ приоритетов · CSV", "data_requests.csv":"Запросы данных · CSV", "report.md":"Аналитическая справка · MD"};
+$("#downloads").innerHTML = Object.keys(DATA.exports).map(name => `<button class="btn sec" data-download="${name}">${downloadTitles[name]}</button>`).join("");
+$("#downloads").onclick = event => {
+  const name = event.target.dataset.download; if (!name) return;
+  downloadFile(name, (name.endsWith(".csv") ? "\uFEFF" : "") + DATA.exports[name]);
+};
+$("#t-quality").innerHTML = `<h3>Проверка требований ТЗ</h3><p class="note">Все проверки выполнены по фактическим выгрузкам при сборке этой страницы. Полный паспорт расчёта, SHA-256 файлов и время выполнения — в validation.json рядом с HTML.</p>
+  <div class="metric-cards"><div class="metric-card"><strong>${M.checks.filter(check => check.passed).length}/${M.checks.length}</strong>проверок выгрузок</div><div class="metric-card"><strong>${S.n_tx}</strong>транзакций сверено</div><div class="metric-card"><strong>${S.truncated_nodes}</strong>узла на границе обхода</div><div class="metric-card"><strong>${S.seed_without_outgoing}</strong>seed без исходящих</div></div>
+  <p class="note">${S.weak_components} слабосвязных компонент с учётом изолятов, из них ${S.isolated_seeds} — seed без переводов. Изолированные узлы входят в счётчик компонент.</p>
+  ${M.checks.map(check => `<div class="check"><b>${check.passed ? "✓" : "!"}</b><span>${esc(check.description)}</span></div>`).join("")}
+  <h3>Что означает уверенность</h3><p class="note">role_score — сила соответствия формальному правилу. Метрика не проверена на размеченных ролях: ground truth отсутствует. ROC-AUC относится только к наличию исходящих на наблюдаемых коленах.</p>
+  <p class="note">Модель обрыва: ${M.trunc.cv_folds} фолдов, ROC-AUC ${M.trunc.cv_auc.toFixed(3)}, Brier ${M.trunc.cv_brier.toFixed(3)} против ${M.trunc.baseline_brier.toFixed(3)} у постоянного прогноза. Неопределённая зона: ${M.trunc.uncertain_nodes} узлов. Перенос на 4-е колено требует новых данных.</p>`;
 
 // кластеры
 function focusCluster(c){
   setMode("net");
+  resetFilters();
   $("#clsel").value = c; applyFilters(); clearHL(); applyLabels();
   cy.fit(cy.nodes(":visible"), 40);
 }
@@ -493,7 +655,7 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
 (function(){
   const T = M.trunc;
   $("#t-method").innerHTML = `<div class="method">
-  <h3>Роли: формальные правила</h3><div class="note">Правила проверяются по порядку сверху вниз; первая выполненная роль — основная, остальные показываются как «также выполнены». role_score = 0.5 + 0.5 × сила признака.</div>
+  <h3>Роли: формальные правила</h3><div class="note">Правила проверяются по порядку сверху вниз; первая выполненная роль — основная, остальные показываются как «также выполнены». Для основных ролей role_score = 0.5 + 0.5 × сила признака; у терминалов на 4-м колене весь скор умножается на P(сток). У периферии отдельная оценка удалённости от порогов. Это не вероятность виновности.</div>
   <table>${M.rules.map(([r, t]) => `<tr><td>${badge(r)}</td><td>${esc(t)}</td></tr>`).join("")}</table>
   <h3>Приоритет</h3><div class="note">priority = Σ вес × компонента (каждая 0..1), затем деление на максимум. Seed × 0.85: они уже известны, при равных признаках выше новые узлы.</div>
   <table>${Object.entries(M.weights).map(([k, w]) => `<tr><td>${k}</td><td>${w}</td></tr>`).join("")}</table>
@@ -501,12 +663,12 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
   <table>${Object.entries(T.coefficients).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v > 0 ? "+" : ""}${v}</td></tr>`).join("")}</table>
   <h3>Ограничения данных и как учтены</h3><ul class="note" style="padding-left:18px">
    <li>Только исходящие: вход узла — нижняя оценка. Пропуск out/in у seed не используется для транзита.</li>
-   <li>Если узел отдал больше, чем получил в выборке, разница пришла извне — она «разбавляет» долю денег seed при атрибуции.</li>
+   <li>Если узел отдал больше, чем получил в выборке, возможны невидимый вход или начальный остаток — разница «разбавляет» долю денег seed при атрибуции.</li>
    <li>4-е колено: терминал только при P(сток) ≥ 0.6 по модели, с пониженной уверенностью.</li>
    <li>Переводы &lt; 5 000 ₸ не видны: дробление ниже порога не детектируется.</li>
    <li>Кластеры — на неориентированной проекции; направление учтено в ролях.</li>
    <li>Выводы — признаки и гипотезы для проверки, не утверждения о виновности.</li></ul>
-  <h3>Паттерны</h3><div class="note">Возвратные циклы: ${M.n_return_cycles} из ${M.n_cycles} простых циклов длиной ≤6 согласованы по датам (деньги могли пройти круг). Быстрый транзит — FIFO-сопоставление поступлений и списаний в окне 2 дня. Синхронный сбор — ≥3 разных плательщика в один день.</div></div>`;
+  <h3>Паттерны</h3><div class="note">Возвратные циклы: ${M.n_return_cycles} из ${M.n_cycles} простых циклов длиной ≤6 согласованы по датам (деньги могли пройти круг). FIFO сначала расходует старые поступления; в быстрый транзит входят сопоставления с лагом ≤2 дня. Внутри дня порядок неизвестен. Синхронный сбор — ≥3 разных плательщика в один день.</div></div>`;
 })();
 
 // ---------------------------------------------------------------- ассистент
@@ -527,7 +689,7 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
     <div id="exs">${examples.map(q => `<button class="ex">${esc(q)}</button>`).join("")}</div>
     <div class="chatbox"><textarea id="aiq" placeholder="Вопрос о сети на естественном языке…"></textarea><button class="btn" id="aisend">Спросить</button></div>`;
   const history = [];
-  let online = false;
+  let online = false, pending = false;
   function linkify(t){ return esc(t).replace(/\b(\d{18})\b/g, (m) => byId.has(m) ? `<a data-g="${m}">${m}</a>` : m).replace(/\b(\d{8})\b/g, (m) => { const n = DATA.nodes.find(x => x.s === m); return n ? `<a data-g="${n.id}">${m}</a>` : m; }); }
   function add(role, text, trace){
     const d = document.createElement("div");
@@ -537,18 +699,25 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
     $("#chat").appendChild(d); d.scrollIntoView({block:"end"});
   }
   async function ask(q){
-    if (!q.trim()) return;
+    if (!q.trim() || pending) return;
+    if (q.length > 2000){ notify("Вопрос должен быть не длиннее 2000 символов"); return; }
     add("u", q); $("#aiq").value = "";
     if (!online){ add("a", "Ассистент работает через локальный сервер: запустите `python serve.py` и откройте http://localhost:8000. Без ключа OpenAI он отвечает в офлайн-режиме по шаблонам вопросов."); return; }
+    pending = true; $("#aisend").disabled = true;
     const wait = document.createElement("div"); wait.className = "msg a note"; wait.textContent = "Думаю…"; $("#chat").appendChild(wait);
     try {
-      const r = await fetch("/api/ask", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({question:q, history})});
-      const j = await r.json(); wait.remove();
+      const recent = history.slice(-2).map(message => ({role:message.role, content:message.content.slice(0,1000)}));
+      const r = await fetch("/api/ask", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({question:q, history:recent})});
+      const j = await r.json();
+      if (!r.ok || typeof j.answer !== "string") throw new Error(j.error || "Некорректный ответ сервера");
+      wait.remove();
       add("a", j.answer, j.tools && j.tools.length ? `режим: ${j.mode}; инструменты: ${j.tools.join(", ")}` : `режим: ${j.mode}`);
       history.push({role:"user", content:q}, {role:"assistant", content:j.answer});
+      if (history.length > 6) history.splice(0, history.length - 6);
       if (j.focus && byId.has(j.focus)) selectNode(j.focus);
       showTab("ai");
-    } catch (e) { wait.remove(); add("a", "Ошибка запроса к серверу: " + e); }
+    } catch (e) { wait.remove(); add("a", "Ошибка запроса к серверу: " + e.message); }
+    finally { pending = false; $("#aisend").disabled = false; }
   }
   $("#aisend").onclick = () => ask($("#aiq").value);
   $("#aiq").onkeydown = e => { if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); ask($("#aiq").value); } };
@@ -563,8 +732,11 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
 const q = $("#q"), sugg = $("#sugg");
 let act = 0, matches = [];
 function renderSugg(){
-  sugg.hidden = !matches.length;
-  sugg.innerHTML = matches.map((n, i) => `<div data-g="${n.id}" class="${i === act ? "act" : ""}"><span class="sw" style="background:${COLORS[n.r]}"></span><span class="gid">${n.id}</span><span class="note" style="margin-left:auto">${RU[n.r]} · #${n.rk}</span></div>`).join("");
+  sugg.hidden = !q.value.trim();
+  q.setAttribute("aria-expanded", String(!sugg.hidden));
+  if (matches[act]) q.setAttribute("aria-activedescendant", "suggestion-" + act);
+  else q.removeAttribute("aria-activedescendant");
+  sugg.innerHTML = matches.length ? matches.map((n, i) => `<div id="suggestion-${i}" role="option" aria-selected="${i === act}" data-g="${n.id}" class="${i === act ? "act" : ""}"><span class="sw" style="background:${COLORS[n.r]}"></span><span class="gid">${n.id}</span><span class="note" style="margin-left:auto">${RU[n.r]} · #${n.rk}</span></div>`).join("") : '<div role="status">Клиент не найден. Проверьте gid.</div>';
 }
 q.oninput = () => {
   const s = q.value.trim().replace(/\s/g, "");
@@ -573,18 +745,28 @@ q.oninput = () => {
   renderSugg();
 };
 q.onkeydown = e => {
-  if (e.key === "ArrowDown"){ act = Math.min(act + 1, matches.length - 1); renderSugg(); e.preventDefault(); }
+  if (e.key === "ArrowDown"){ act = Math.max(0, Math.min(act + 1, matches.length - 1)); renderSugg(); e.preventDefault(); }
   else if (e.key === "ArrowUp"){ act = Math.max(act - 1, 0); renderSugg(); e.preventDefault(); }
   else if (e.key === "Enter" && matches[act]){ pick(matches[act].id); }
-  else if (e.key === "Escape"){ sugg.hidden = true; q.blur(); }
+  else if (e.key === "Escape"){ hideSuggestions(); q.blur(); }
 };
 sugg.onclick = e => { const d = e.target.closest("[data-g]"); if (d) pick(d.dataset.g); };
-function pick(id){ sugg.hidden = true; q.value = id; selectNode(id); }
+function hideSuggestions(){ sugg.hidden = true; q.setAttribute("aria-expanded", "false"); q.removeAttribute("aria-activedescendant"); }
+function pick(id){ hideSuggestions(); q.value = id; selectNode(id); }
 document.addEventListener("keydown", e => {
   if (e.key === "/" && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA"){ e.preventDefault(); q.focus(); q.select(); }
   if (e.key === "Escape" && document.activeElement === document.body){ clearHL(); applyLabels(); }
 });
-document.addEventListener("click", e => { if (!e.target.closest(".search")) sugg.hidden = true; });
+document.addEventListener("click", e => { if (!e.target.closest(".search")) hideSuggestions(); });
+new ResizeObserver(() => {
+  cy.resize();
+  if (mode === "ego" && egoCy){ egoCy.resize(); egoCy.fit(undefined, 40); }
+  else if (selected){
+    const center = cy.getElementById(selected);
+    cy.fit(center.closedNeighborhood(), 70);
+    if (cy.zoom() > 1.6) cy.zoom({level:1.6, position:center.position()});
+  } else cy.fit(cy.nodes(":visible"), 30);
+}).observe(document.querySelector("main"));
 
 // ссылка вида index.html#<gid> открывает карточку узла
 const h = location.hash.slice(1);

@@ -34,6 +34,19 @@ def test_offline_node_card(ctx, monkeypatch):
     assert top in r["answer"] and r["focus"] == top
 
 
+def test_unknown_gid_is_not_silently_replaced_by_network_summary(ctx, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    result = Assistant(ctx).ask("Расскажи про 999999999999999999")
+    assert "Не удалось" in result["answer"]
+    assert result["tools"] == [] and result["focus"] is None
+
+
+def test_duplicate_sources_do_not_invent_a_common_recipient(ctx):
+    bot = Assistant(ctx)
+    identifier = str(ctx["df"].index[0])
+    assert "error" in bot.tools.common_downstream([identifier, identifier])
+
+
 def test_llm_tool_loop(ctx, monkeypatch):
     top = str(ctx["df"].sort_values("rank").index[0])
     seen = []

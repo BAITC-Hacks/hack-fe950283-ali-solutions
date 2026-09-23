@@ -43,7 +43,7 @@ def seed_linkage(G: nx.DiGraph, df: pd.DataFrame) -> pd.DataFrame:
     Атрибуция пропорциональная: деньги на счёте обезличены, поэтому каждый исходящий
     перевод узла несёт ту же долю денег фигурантов, что и весь доступный узлу объём.
     Доступный объём = max(вход, выход): если отдал больше, чем получил в выборке,
-    разница пришла извне и «разбавляет» долю.
+    возможны невидимые поступления или начальный остаток; разница «разбавляет» долю.
     """
     seeds = list(df.index[df.is_seed])
     reach = defaultdict(set)
@@ -86,7 +86,7 @@ def centrality(G: nx.DiGraph, df: pd.DataFrame) -> pd.DataFrame:
 
 def temporal(tx: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
     tx = tx.copy()
-    tx["day"] = tx.date.dt.day.astype(int)
+    tx["day"] = (tx.date.dt.normalize() - tx.date.min().normalize()).dt.days + 1
     tx = tx.sort_values(["day", "src", "dst"])
     # кортежи (день, сумма, контрагент): gid держим как int — в float64 18 знаков не влезают
     ins, outs = defaultdict(list), defaultdict(list)
@@ -107,6 +107,7 @@ def temporal(tx: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
             "lag_median_days": np.nan,
             "sync_payers_max": 0,
             "sync_day": 0,
+            "sync_date": "",
         }
         if i_l and o_l:
             r["fast_in_share"], r["lag_median_days"] = _fast_forward(i_l, o_l)
@@ -116,6 +117,7 @@ def temporal(tx: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
                 by_day[day].add(src)
             day, payers = max(by_day.items(), key=lambda kv: (len(kv[1]), -kv[0]))
             r["sync_payers_max"], r["sync_day"] = len(payers), day
+            r["sync_date"] = str((tx.date.min().normalize() + pd.Timedelta(days=day - 1)).date())
         rows[g] = r
     t = pd.DataFrame.from_dict(rows, orient="index")
 
@@ -144,30 +146,37 @@ def temporal(tx: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
 
 def _fast_forward(i_l, o_l):
     """FIFO: какая доля полученного ушла дальше не позже FAST_DAYS после поступления."""
-    lots = deque()  # [day, остаток]
+    incoming = sorted(i_l)
+    outgoing = sorted(o_l)
+    lots = deque()
     total_in = sum(a for _, a, _ in i_l)
-    matched, k = 0.0, 0
-    for d_out, amt, _ in o_l:
-        while k < len(i_l) and i_l[k][0] <= d_out:
-            lots.append([i_l[k][0], i_l[k][1]])
-            k += 1
-        while lots and lots[0][0] < d_out - C.FAST_DAYS:
-            lots.popleft()
-        need = amt
+    fast_matched, incoming_index = 0.0, 0
+    matched_lags = []
+    for outgoing_day, amount, _ in outgoing:
+        while incoming_index < len(incoming) and incoming[incoming_index][0] <= outgoing_day:
+            lots.append([incoming[incoming_index][0], incoming[incoming_index][1]])
+            incoming_index += 1
+        need = amount
         while need > 0 and lots:
             take = min(need, lots[0][1])
-            matched += take
+            lag = outgoing_day - lots[0][0]
+            matched_lags.append((lag, take))
+            if lag <= C.FAST_DAYS:
+                fast_matched += take
             need -= take
             lots[0][1] -= take
             if lots[0][1] <= 1e-9:
                 lots.popleft()
-    out_days = np.array(sorted(d for d, _, _ in o_l))
-    lags = []
-    for d_in, _, _ in i_l:
-        j = np.searchsorted(out_days, d_in)
-        if j < len(out_days):
-            lags.append(out_days[j] - d_in)
-    return (matched / total_in if total_in else 0.0), (float(np.median(lags)) if lags else np.nan)
+    median_lag = np.nan
+    if matched_lags:
+        cumulative = 0.0
+        midpoint = sum(amount for _, amount in matched_lags) / 2
+        for lag, amount in sorted(matched_lags):
+            cumulative += amount
+            if cumulative >= midpoint:
+                median_lag = float(lag)
+                break
+    return (fast_matched / total_in if total_in else 0.0), median_lag
 
 
 # ---------------------------------------------------------------- циклы (возвратные потоки)
@@ -176,7 +185,7 @@ def cycles(G: nx.DiGraph, tx: pd.DataFrame, df: pd.DataFrame, max_len: int = 6):
     """Простые циклы длиной ≤6. «Возвратный» — если по датам деньги могли пройти круг."""
     days = defaultdict(list)
     for r in tx.itertuples(index=False):
-        days[(r.src, r.dst)].append(r.date.day)
+        days[(r.src, r.dst)].append(r.date.toordinal())
     for k in days:
         days[k].sort()
 

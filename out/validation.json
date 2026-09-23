@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-23T10:01:32.489325+00:00",
+  "passed": true,
+  "elapsed_seconds": 4.445,
+  "stats": {
+    "n_nodes": 2248,
+    "n_edges": 3119,
+    "n_tx": 4840,
+    "n_seed": 81,
+    "turnover_kzt": 365890012.01,
+    "date_min": "2026-07-01",
+    "date_max": "2026-07-31",
+    "isolated_seeds": 19,
+    "seed_without_outgoing": 31,
+    "truncated_nodes": 444,
+    "weak_components": 35
+  },
+  "input_sha256": {
+    "edges.parquet": "4e71dde5cd3115bcb26e91202665532ee6581cf8233a9fc8059ea59fb7358a38",
+    "nodes.parquet": "d2a45b0df6e9352832d5fb09839d10b9e23f898156c3bab263b051b31cc0296d",
+    "transactions.parquet": "c30c5317b5439591dde86f2058dc47a3d19b2900c055ded994fe547f6fb7e7da"
+  },
+  "output_sha256": {
+    "clusters.csv": "a585590ba0f5f2cb08b7fd568dfb97c973c791b1d91518208fef9bd98232339f",
+    "clusters_details.csv": "14b4a9c2fc7413a0d79b8ca5f5b2ba2596d6850cca08abf78fc2df2bbb3b2230",
+    "data_requests.csv": "f801134374ca7e6656d3a4d4250ec2fe65478be179f23afefed7bcaf3328b6f1",
+    "index.html": "5236733dd08d1c2bff342f4be2076673b703d00157b3ef7eb1306da7b443d6e0",
+    "nodes_features.csv": "9223e6d6da9474f276f4430b9bdb2369bee4ae68ed405f79f1c18773625abaad",
+    "nodes_roles.csv": "fc033a2f35b8530bfa2e743dd43dfabde5c223726ac5ead82ed6ddcbf6f6e63e",
+    "report.md": "1a26e730302b654295a8f2ffaa66c0e888bf52d183b3206e356306315677772c",
+    "resilience.csv": "90e74924a0d2e09dc6e39c56951fdf0d2079ca6b88007539b9d566b43baf96c1",
+    "top_nodes.csv": "f9184f3b388f2e366de6aaf3975d62ded7a5a4ba8649e1bb90ad3e9c8c4d1729"
+  },
+  "python": "3.13.12",
+  "packages": {
+    "pandas": "3.0.6",
+    "pyarrow": "25.0.1",
+    "networkx": "3.7",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1",
+    "scikit-learn": "1.9.1"
+  },
+  "parameters": {
+    "MIN_TX_KZT": 5000,
+    "MAX_DEPTH": 4,
+    "FAST_DAYS": 2,
+    "RANDOM_SEED": 42,
+    "HUB_MIN_PAYERS": 5,
+    "HUB_MIN_RECIPIENTS": 10,
+    "COORD_MIN_KEY_LINKS": 5,
+    "DISTR_MIN_RECIPIENTS": 10,
+    "DISTR_FANOUT_RATIO": 3,
+    "CONS_MIN_PAYERS": 4,
+    "CONS_ALT_PAYERS": 3,
+    "CONS_ALT_SEED_PAYERS": 2,
+    "TRANSIT_PT": [
+      0.8,
+      1.2
+    ],
+    "TRANSIT_FAST_SHARE": 0.6,
+    "TRANSIT_FAST_PT": [
+      0.5,
+      2.0
+    ],
+    "TRANSIT_MIN_KZT": 20000,
+    "SEED_TRANSIT_MIN_KZT": 100000,
+    "SEED_TRANSIT_MAX_RCPT": 9,
+    "TERM_MAX_PT": 0.1,
+    "TERM_MIN_KZT": 100000,
+    "TERM_MIN_PAYERS": 2,
+    "TERM_MIN_TX": 3,
+    "TRUNC_TERMINAL_P": 0.6,
+    "ROLES": [
+      "coordinator",
+      "consolidator",
+      "distributor",
+      "transit",
+      "terminal",
+      "peripheral"
+    ],
+    "ROLE_RU": {
+      "coordinator": "координатор",
+      "consolidator": "консолидатор",
+      "distributor": "распределитель",
+      "transit": "транзит",
+      "terminal": "конечный получатель",
+      "peripheral": "периферия"
+    },
+    "ROLE_WEIGHT": {
+      "coordinator": 1.0,
+      "consolidator": 0.9,
+      "distributor": 0.75,
+      "terminal": 0.6,
+      "transit": 0.55,
+      "peripheral": 0.1
+    },
+    "PRIORITY_WEIGHTS": {
+      "role": 0.3,
+      "seed": 0.2,
+      "volume": 0.2,
+      "network": 0.15,
+      "patterns": 0.15
+    },
+    "SEED_NOVELTY_FACTOR": 0.85,
+    "TOP_N": 50,
+    "LOUVAIN_RUNS": 10
+  },
+  "checks": [
+    {
+      "passed": true,
+      "description": "nodes_roles.csv: точная схема ТЗ"
+    },
+    {
+      "passed": true,
+      "description": "clusters.csv: точная схема ТЗ"
+    },
+    {
+      "passed": true,
+      "description": "top_nodes.csv: точная схема ТЗ"
+    },
+    {
+      "passed": true,
+      "description": "nodes_roles.csv: целочисленные идентификаторы и счётчики"
+    },
+    {
+      "passed": true,
+      "description": "clusters.csv: целочисленные идентификаторы и счётчики"
+    },
+    {
+      "passed": true,
+      "description": "top_nodes.csv: целочисленные идентификаторы и счётчики"
+    },
+    {
+      "passed": true,
+      "description": "nodes_roles.csv: evidence содержит непустой текст"
+    },
+    {
+      "passed": true,
+      "description": "clusters.csv: hypothesis содержит непустой текст"
+    },
+    {
+      "passed": true,
+      "description": "top_nodes.csv: why содержит непустой текст"
+    },
+    {
+      "passed": true,
+      "description": "nodes_roles.csv: 2248 строк (нужно 2248)"
+    },
+    {
+      "passed": true,
+      "description": "nodes_roles.csv: каждый gid ровно один раз"
+    },
+    {
+      "passed": true,
+      "description": "обязательные колонки заполнены"
+    },
+    {
+      "passed": true,
+      "description": "все роли из словаря ТЗ"
+    },
+    {
+      "passed": true,
+      "description": "role_score и priority_score в [0, 1]"
+    },
+    {
+      "passed": true,
+      "description": "evidence ≤200 символов и содержит числа"
+    },
+    {
+      "passed": true,
+      "description": "cluster_id каждого узла есть в clusters.csv"
+    },
+    {
+      "passed": true,
+      "description": "clusters.csv заполнен, размеры сходятся"
+    },
+    {
+      "passed": true,
+      "description": "top_nodes.csv: 50 строк, отсортирован по приоритету"
+    },
+    {
+      "passed": true,
+      "description": "у каждой позиции топа есть обоснование"
+    },
+    {
+      "passed": true,
+      "description": "top_nodes.csv: уникальные известные gid"
+    },
+    {
+      "passed": true,
+      "description": "clusters.csv: конечный неотрицательный оборот"
+    },
+    {
+      "passed": true,
+      "description": "clusters.csv: допустимое число узлов и seed"
+    },
+    {
+      "passed": true,
+      "description": "размер каждого кластера совпадает с назначениями узлов"
+    },
+    {
+      "passed": true,
+      "description": "топ: роли и приоритеты совпадают с nodes_roles.csv"
+    },
+    {
+      "passed": true,
+      "description": "топ соответствует первым узлам общего ранжирования"
+    },
+    {
+      "passed": true,
+      "description": "top_gids принадлежат соответствующим кластерам"
+    },
+    {
+      "passed": true,
+      "description": "число seed каждого кластера совпадает с входными данными"
+    },
+    {
+      "passed": true,
+      "description": "внутренний оборот каждого кластера совпадает с рёбрами"
+    },
+    {
+      "passed": true,
+      "description": "полный пересчёт не более 300 секунд"
+    }
+  ]
+}

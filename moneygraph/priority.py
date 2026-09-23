@@ -20,8 +20,8 @@ ACTION = {
     "consolidator": "куда уходят накопления: снятие наличных, межбанк, покупка активов",
     "distributor": "источник средств (вход в выборке занижен) и получателей веера",
     "transit": "цепочку до и после узла: возможен транзитный счёт",
-    "terminal": "снятие наличных и межбанковские переводы: внутрибанковских исходящих нет",
-    "peripheral": "без новых данных углублённая проверка не требуется",
+    "terminal": "полную выписку, снятие наличных и межбанковские переводы: видимый выход невелик",
+    "peripheral": "наличие дополнительных сведений: выбранные пороги ролей не достигнуты",
 }
 
 
@@ -60,7 +60,7 @@ def _why(r) -> str:
     if r.n_return_cycles:
         facts.append(f"{r.n_return_cycles} возвратных циклов (деньги возвращаются к отправителю)")
     if r.sync_payers_max >= 3:
-        facts.append(f"{r.sync_payers_max} плательщиков в один день ({r.sync_day:02d}.07)")
+        facts.append(f"{r.sync_payers_max} плательщиков в один день ({r.sync_date})")
     if r.fast_in_share >= C.TRANSIT_FAST_SHARE and r.in_kzt >= C.TRANSIT_MIN_KZT:
         facts.append(f"{r.fast_in_share:.0%} полученного ушло ≤{C.FAST_DAYS} дн.")
     if r.repeated_routes:
@@ -73,7 +73,8 @@ def _why(r) -> str:
     top = sorted(comps.items(), key=lambda kv: -kv[1])[:3]
     drivers = ", ".join(COMPONENT_RU[k] for k, _ in top)
     seed = " Уже в деле (seed)." if r.is_seed else ""
+    action = "исходящие 5-го колена: отсутствие выгрузки не означает удержание средств" if r.truncated else ACTION[r.role]
     text = (f"{C.ROLE_RU[r.role].capitalize()} (уверенность {r.role_score:.2f}): {r.evidence}. "
             f"Главные факторы: {drivers}. " + ("Признаки: " + "; ".join(facts) + ". " if facts else "")
-            + f"Проверить: {ACTION[r.role]}.{seed}")
+            + f"Проверить: {action}.{seed}")
     return clip_text(text, 600)

@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, cross_val_predict
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import brier_score_loss, roc_auc_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -55,8 +55,12 @@ def fit_predict(G, df: pd.DataFrame):
 
     train = (df.depth.between(1, C.MAX_DEPTH - 1)) & (~df.is_seed)
     y = (df.out_deg[train] > 0).astype(int)
+    class_counts = y.value_counts()
+    if len(class_counts) != 2 or class_counts.min() < 2:
+        raise ValueError("Модель обрыва требует минимум по 2 узла со входом и с/без исходящих на коленах 1–3")
     model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000, C=1.0))
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=C.RANDOM_SEED)
+    folds = min(5, int(class_counts.min()))
+    cv = StratifiedKFold(n_splits=folds, shuffle=True, random_state=C.RANDOM_SEED)
     oof = cross_val_predict(model, X[train], y, cv=cv, method="predict_proba")[:, 1]
     auc = roc_auc_score(y, oof)
     model.fit(X[train], y)
@@ -68,10 +72,14 @@ def fit_predict(G, df: pd.DataFrame):
         "train_nodes": int(train.sum()),
         "train_sink_rate": float(1 - y.mean()),
         "cv_auc": float(auc),
+        "cv_folds": folds,
+        "cv_brier": float(brier_score_loss(y, oof)),
+        "baseline_brier": float(brier_score_loss(y, np.full(len(y), y.mean()))),
         "coefficients": {FEATURES[k]: round(float(c), 3) for k, c in zip(X.columns, coefs)},
         "truncated_nodes": int(trunc.sum()),
         "expected_true_sinks": float((1 - df.p_forward[trunc]).sum()),
-        "likely_forwarders": int((df.p_forward[trunc] >= 1 - C.TRUNC_TERMINAL_P).sum()),
+        "likely_forwarders": int((df.p_forward[trunc] >= C.TRUNC_TERMINAL_P).sum()),
         "likely_sinks": int((df.p_forward[trunc] <= 1 - C.TRUNC_TERMINAL_P).sum()),
+        "uncertain_nodes": int(df.p_forward[trunc].between(1 - C.TRUNC_TERMINAL_P, C.TRUNC_TERMINAL_P, inclusive="neither").sum()),
     }
     return df, report

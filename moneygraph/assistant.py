@@ -44,7 +44,10 @@ class GraphTools:
         self.requests = ctx["requests"]
         self.trunc = ctx["trunc"]
         self.stats = ctx["stats"]
-        self.by_short = {short(g): g for g in self.df.index}
+        candidates = defaultdict(list)
+        for identifier in self.df.index:
+            candidates[short(identifier)].append(identifier)
+        self.by_short = {label: identifiers[0] for label, identifiers in candidates.items() if len(identifiers) == 1}
 
     # ---------------------------------------------------------------- утилиты
     def resolve(self, x):
@@ -80,7 +83,7 @@ class GraphTools:
     def common_downstream(self, gids, max_hops=3):
         """Кто собирает деньги с нескольких узлов: узлы, достижимые по направлению денег из ≥2 заданных."""
         src = [self.resolve(x) for x in gids]
-        src = [g for g in src if g is not None]
+        src = list(dict.fromkeys(g for g in src if g is not None))
         if len(src) < 2:
             return {"error": "нужно минимум два известных gid"}
         reach = defaultdict(dict)
@@ -260,6 +263,10 @@ class Assistant:
 
     def _ask_offline(self, q):
         T, ql, gids = self.tools, q.lower(), self._gids(q)
+        unknown = [identifier for identifier in re.findall(r"\b(?:\d{18}|\d{8})\b", q) if T.resolve(identifier) is None]
+        if unknown:
+            return {"answer": "Не удалось однозначно найти gid: " + ", ".join(unknown) + ". Проверьте полный идентификатор.",
+                    "mode": "офлайн (шаблоны)", "tools": [], "focus": None}
         role = next((r for w, r in ROLE_WORDS.items() if w in ql), None)
         num = re.search(r"топ[- ]?(\d+)", ql)
         limit = int(num.group(1)) if num else 10

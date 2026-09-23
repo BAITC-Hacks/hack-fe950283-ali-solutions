@@ -17,16 +17,16 @@ def data_requests(df: pd.DataFrame) -> pd.DataFrame:
     ext = d[(~d.is_seed) & (d.out_kzt > 1.2 * d.in_kzt + 100_000)]
     for g, r in ext.iterrows():
         rows.append((g, "входящие извне выборки",
-                     f"отдал {kzt(r.out_kzt)}, получил в выборке {kzt(r.in_kzt)}: {kzt(r.out_kzt - r.in_kzt)} — источник вне данных",
+                     f"отдал {kzt(r.out_kzt)}, получил в выборке {kzt(r.in_kzt)}: разница {kzt(r.out_kzt - r.in_kzt)}; проверить начальный остаток и невидимый вход",
                      r.out_kzt - r.in_kzt))
     s = d[d.is_seed & (d.out_kzt >= 100_000)]
     for g, r in s.iterrows():
         rows.append((g, "входящие seed (источник выручки)",
-                     f"seed переправил {kzt(r.out_kzt)}; входящие seed в выгрузку не попали", r.out_kzt))
+                     f"seed переправил {kzt(r.out_kzt)}; входящие seed в выгрузке неполны", r.out_kzt))
     iso = d[d.n_edges == 0]
     for g, r in iso.iterrows():
         rows.append((g, "межбанк / наличные / переводы <5 тыс ₸",
-                     "seed без внутрибанковских переводов ≥5 тыс ₸ за июль", 0.0))
+                     "узел без внутрибанковских переводов ≥5 тыс ₸ за период", 0.0))
     sink = d[d.out_observed & (d.out_deg == 0) & (d.in_kzt >= 500_000)]
     for g, r in sink.iterrows():
         rows.append((g, "снятие наличных / межбанк / покупки",
@@ -55,6 +55,7 @@ def write_report(path, ctx) -> None:
              f"seed **{stats['n_seed']}** (без переводов: {stats['isolated_seeds']})")
     L.append(f"- оборот **{kzt(stats['turnover_kzt'])}**, период {stats['date_min']} — {stats['date_max']}")
     L.append(f"- кластеров **{cl.shape[0]}** (Louvain, модулярность {ctx['modularity']:.3f})")
+    L.append(f"- слабосвязных компонент с учётом изолятов: **{stats['weak_components']}**; seed без исходящих: **{stats['seed_without_outgoing']}**")
     L.append(f"- возвратных циклов (≤6 шагов, согласованы по датам): **{sum(c['returned'] for c in cyc)}** из {len(cyc)}\n")
 
     L.append("## Роли\n")
@@ -82,10 +83,14 @@ def write_report(path, ctx) -> None:
              f"1–3 колена (их исходящие наблюдаемы; доля стоков {trunc['train_sink_rate']:.0%}) только по признакам "
              f"входящей стороны. Кросс-валидация: **ROC-AUC {trunc['cv_auc']:.2f}**.\n")
     L.append(f"- обрезанных узлов: {trunc['truncated_nodes']} — наивно все они были бы «стоками»")
+    L.append(f"- Brier по отложенным предсказаниям: **{trunc['cv_brier']:.3f}**, постоянный прогноз: **{trunc['baseline_brier']:.3f}** (меньше лучше)")
+    L.append(f"- неопределённая зона 0.4 < P(передаёт) < 0.6: **{trunc['uncertain_nodes']}** узлов")
     L.append(f"- ожидаемо настоящих стоков: **≈{trunc['expected_true_sinks']:.0f}**; "
              f"вероятно передают дальше (P≥0.6): {trunc['likely_forwarders']}; вероятные стоки (P(сток)≥0.6): {trunc['likely_sinks']}")
     L.append("- коэффициенты (стандартизованные признаки): " +
              ", ".join(f"{k}: {v:+.2f}" for k, v in trunc["coefficients"].items()) + "\n")
+    L.append("Оценки модели не доказывают удержание средств: проверка проводится на коленах 1–3, а у 4-го возможен сдвиг распределения. role_score — сила соответствия правилу, не вероятность виновности.\n")
+    L.append("FIFO расходует сначала старые поступления и только затем новые. В быстрый транзит входят лишь сопоставления с лагом ≤2 дня. Порядок внутри дня неизвестен, поэтому это возможный транзит, а не доказанная трассировка конкретных денег. Превышение выхода над входом может объясняться начальным остатком.\n")
 
     L.append("## Устойчивость: что если заблокировать N узлов\n")
     L.append(_table(res[res.n_removed.isin([0, 10, 20])]))

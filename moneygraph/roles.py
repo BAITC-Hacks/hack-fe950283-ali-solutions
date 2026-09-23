@@ -61,7 +61,7 @@ def assign(G, df: pd.DataFrame) -> pd.DataFrame:
     S.loc[seed_transit, "transit"] = (0.8 * (0.5 * d.top_out_share + 0.5 * sat(d.out_kzt, 1e5, 2e6)))[seed_transit]
     retention = 1 - np.minimum(pt, 1)
     term_s = 0.4 * retention + 0.3 * sat(d.in_kzt, 1e5, 2e6) + 0.3 * sat(d.in_deg, 1, 6)
-    S["terminal"] = np.where(term_obs, term_s, np.where(term_trunc, term_s * p_sink, 0))
+    S["terminal"] = np.where(terminal, term_s, 0)
 
     gated = pd.DataFrame({
         "coordinator": coord, "consolidator": cons, "distributor": distr,
@@ -71,6 +71,7 @@ def assign(G, df: pd.DataFrame) -> pd.DataFrame:
     d["role"] = np.where(has, gated.idxmax(axis=1), "peripheral")  # первая True по порядку ROLES
     best = pd.Series([S.at[g, r] if r != "peripheral" else 0.0 for g, r in zip(d.index, d.role)], index=d.index)
     d["role_score"] = np.where(has, 0.5 + 0.5 * best, 0.0)
+    d.loc[(d.role == "terminal") & d.truncated, "role_score"] *= p_sink
     d["role_secondary"] = [
         ";".join(r for r in gated.columns if gated.at[g, r] and r != d.at[g, "role"]) for g in d.index
     ]
@@ -128,7 +129,7 @@ def _evidence(r) -> str:
                 + ("; вход занижен (seed)" if r.is_seed else ""))
     if r.role == "transit":
         if r.is_seed:
-            return (f"seed-дроп: вход вне выборки; переправил {kzt(r.out_kzt)} {r.out_deg} получ., "
+            return (f"Признаки передачи средств seed: вход неполон; переправил {kzt(r.out_kzt)} {r.out_deg} получ., "
                     f"{pct(r.top_out_share)} — одному")
         fast = f"; {pct(r.fast_in_share)} ушло ≤{C.FAST_DAYS} дн. после поступления" if r.fast_in_share >= 0.3 else ""
         return f"Пропуск {pct(fwd)}: получил {kzt(r.in_kzt)} от {r.in_deg}, отдал {kzt(r.out_kzt)} {r.out_deg} получ.{fast}"
@@ -140,7 +141,7 @@ def _evidence(r) -> str:
         return f"Получил {kzt(r.in_kzt)} от {r.in_deg} плательщиков{seedp}, {kept} (исходящие наблюдаемы){up}"
     # peripheral
     if r.n_edges == 0:
-        return "seed без переводов ≥5 тыс ₸ внутри банка за июль: данных для роли нет; нужен запрос входящих и межбанка"
+        return "Узел без переводов ≥5 тыс ₸ внутри банка за период: данных для роли нет; нужен запрос входящих и межбанка"
     if r.truncated:
         return (f"4-е колено (обход оборван): {r.in_tx} поступл. на {kzt(r.in_kzt)} от {r.in_deg}; "
                 f"P(передаёт дальше)={r.p_forward:.2f} — порогов ролей не достигает")

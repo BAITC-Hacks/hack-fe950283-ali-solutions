@@ -22,7 +22,11 @@ def main() -> int:
 
     t0 = time.time()
     print("Граф денег: полный пересчёт")
-    ctx = pipeline.run(Path(a.data), Path(a.out))
+    try:
+        ctx = pipeline.run(Path(a.data), Path(a.out))
+    except (ValueError, OSError) as error:
+        print(f"Ошибка входных данных или выгрузки: {error}", file=sys.stderr)
+        return 1
     print("\nПроверка выгрузок по ТЗ:")
     ok = True
     for passed, text in ctx["checks"]:
@@ -31,7 +35,7 @@ def main() -> int:
     out = Path(a.out)
     print(f"\nГотово за {time.time() - t0:.1f} с. Файлы в {out}/:")
     for f in ("nodes_roles.csv", "clusters.csv", "top_nodes.csv", "index.html", "report.md",
-              "data_requests.csv", "resilience.csv"):
+              "data_requests.csv", "resilience.csv", "nodes_features.csv", "clusters_details.csv", "validation.json"):
         print(f"  {f}")
     print(f"\nЭкран просмотра: откройте {out / 'index.html'} "
           f"(или `python serve.py` — с AI-ассистентом)")

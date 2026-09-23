@@ -108,7 +108,7 @@ def _archetype(k, sub) -> str:
 def _hypothesis(k, sub, top, internal, G, role) -> str:
     n, ns = len(sub), int(sub.is_seed.sum())
     if k == 0:
-        return (f"{n} seed без единого перевода ≥5 тыс ₸ внутри банка за июль — это не группа, а "
+        return (f"{n} узлов без единого перевода ≥5 тыс ₸ внутри банка за период — это не группа, а "
                 f"отсутствие данных. Гипотеза: работают через наличные/другие банки; нужен запрос выписок.")
     arche = _archetype(k, sub)
     lead = top.iloc[0]
@@ -124,8 +124,9 @@ def _hypothesis(k, sub, top, internal, G, role) -> str:
     elif arche == "контур сбора":
         cs = sub[sub.role == "consolidator"].sort_values(["seed_payers", "in_deg"], ascending=False)
         c, cg = cs.iloc[0], cs.index[0]
+        outgoing = f"дальше уходит {min(c.out_kzt / c.in_kzt, 9.99):.0%}" if c.out_observed else "исходящие не выгружены (4-е колено)"
         txt = (f"Признаки консолидации: {short(cg)} получает от {c.in_deg} плательщиков"
-               f" (seed: {c.seed_payers}), дальше уходит {min(c.out_kzt / c.in_kzt, 9.99):.0%}. "
+               f" (seed: {c.seed_payers}), {outgoing}. "
                f"Гипотеза: точка сбора выручки от нижнего уровня.")
     elif arche == "веерные выплаты":
         dd = sub[sub.role == "distributor"].sort_values("out_deg", ascending=False)
@@ -141,5 +142,5 @@ def _hypothesis(k, sub, top, internal, G, role) -> str:
         txt = (f"{sub.truncated.mean():.0%} узлов обрезаны 4-м коленом — структура не видна. "
                f"Гипотеза не формируется без исходящих 5-го колена.")
     else:
-        txt = "Мелкие разовые переводы без признаков схемы. Гипотеза: бытовое окружение seed; приоритет низкий."
+        txt = "Выбранные пороги ролей не достигнуты. Назначение переводов неизвестно; в этой модели приоритет низкий."
     return f"{base}{txt} Ключевой узел: {lead_s}."

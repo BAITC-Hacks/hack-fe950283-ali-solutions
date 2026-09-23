@@ -2,7 +2,9 @@
 import time
 from pathlib import Path
 
-from . import clusters, export, features, load, priority, report, resilience, roles, truncation, viewer
+import networkx as nx
+
+from . import clusters, export, features, load, priority, report, resilience, roles, truncation, validation, viewer
 
 
 def compute(data_dir: Path, log=print) -> dict:
@@ -11,6 +13,7 @@ def compute(data_dir: Path, log=print) -> dict:
     stats = load.sanity_check(edges, nodes, tx)
     log(f"  данные: {stats['n_nodes']} узлов, {stats['n_edges']} рёбер, {stats['n_tx']} транзакций — консистентны")
     G = load.build_graph(edges, nodes)
+    stats["weak_components"] = nx.number_weakly_connected_components(G)
     df, cyc = features.compute_all(G, nodes, tx)
     log(f"  метрики: степени, суммы, seed-атрибуция, PageRank, betweenness, время, {len(cyc)} циклов")
     df, trunc = truncation.fit_predict(G, df)
@@ -31,12 +34,20 @@ def compute(data_dir: Path, log=print) -> dict:
 
 
 def run(data_dir: Path, out_dir: Path, log=print) -> dict:
+    started = time.perf_counter()
     ctx = compute(data_dir, log)
+    ctx["input_sha256"] = validation.input_fingerprint(data_dir)
     export.write(out_dir, ctx["df"], ctx["clusters"], {
         "resilience.csv": ctx["resilience"],
         "data_requests.csv": ctx["requests"],
     })
+    ctx["checks"] = export.validate(out_dir, ctx["stats"]["n_nodes"], set(ctx["nodes"].gid),
+                                    set(ctx["nodes"].loc[ctx["nodes"].is_seed, "gid"]), ctx["edges"])
+    if not all(passed for passed, _ in ctx["checks"]):
+        raise ValueError("Проверка выгрузок не пройдена: " + "; ".join(message for passed, message in ctx["checks"] if not passed))
     report.write_report(out_dir / "report.md", ctx)
     viewer.build(out_dir, ctx["G"], ctx)
-    ctx["checks"] = export.validate(out_dir, ctx["stats"]["n_nodes"], set(ctx["nodes"].gid))
+    ctx["elapsed_seconds"] = time.perf_counter() - started
+    validation.write(out_dir, ctx, ctx["elapsed_seconds"])
+    ctx["checks"].append((ctx["elapsed_seconds"] <= 300, "полный пересчёт не более 300 секунд"))
     return ctx
