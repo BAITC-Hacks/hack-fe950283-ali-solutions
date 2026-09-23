@@ -11,6 +11,8 @@ import pytest
 from moneygraph import config as C
 from moneygraph import pipeline
 from moneygraph import export, validation
+from moneygraph import fmt
+from moneygraph.fmt import short
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -45,6 +47,9 @@ def test_roles_follow_documented_rules(run):
     assert ((co.in_deg >= C.HUB_MIN_PAYERS) & (co.out_deg >= C.HUB_MIN_RECIPIENTS) & (co.key_links >= C.COORD_MIN_KEY_LINKS)).all()
     di = d[d.role == "distributor"]
     assert (di.out_deg >= C.DISTR_MIN_RECIPIENTS).all()
+    hub = (d.in_deg >= C.HUB_MIN_PAYERS) & (d.out_deg >= C.HUB_MIN_RECIPIENTS) & (d.role != "coordinator")
+    assert (d[hub & (d.role == "distributor")].out_deg >= C.HUB_DISTR_RATIO * d[hub & (d.role == "distributor")].in_deg).all()
+    assert (d[hub & (d.role == "consolidator")].out_deg < C.HUB_DISTR_RATIO * d[hub & (d.role == "consolidator")].in_deg).all()
     tr = d[(d.role == "transit") & ~d.is_seed]
     assert tr.pass_through.between(*C.TRANSIT_FAST_PT).all() and (tr.depth < C.MAX_DEPTH).all()
     te = d[d.role == "terminal"]
@@ -62,8 +67,58 @@ def test_truncation_artifact_not_naive(run):
 
 
 def test_no_hardcoded_gids():
-    for p in (ROOT / "moneygraph").glob("*.py"):
-        assert not re.search(r"\b1000000\d{11}\b", p.read_text(encoding="utf-8")), f"gid в коде: {p.name}"
+    """Ни полного gid из данных, ни его короткой 8-значной формы нет ни в расчёте, ни в интерфейсе."""
+    gids = pd.read_parquet(ROOT / "data" / "nodes.parquet").gid
+    known = {str(g) for g in gids} | {short(g) for g in gids}
+    sources = [*(ROOT / "moneygraph").glob("*.py"), ROOT / "run.py", ROOT / "serve.py",
+               ROOT / "viewer" / "template.html", ROOT / "viewer" / "review.js"]
+    for p in sources:
+        found = set(re.findall(r"\d{8,19}", p.read_text(encoding="utf-8"))) & known
+        assert not found, f"gid в коде {p.name}: {sorted(found)[:3]}"
+
+
+def test_why_is_complete_and_marks_seed(run):
+    top = pd.read_csv(run["out"] / "top_nodes.csv")
+    d = pd.read_csv(run["out"] / "nodes_features.csv").set_index("gid")
+    assert not top.why.str.endswith("…").any()
+    assert top.why.str.contains("Проверить:").all()
+    seeds = top.gid.map(d.is_seed)
+    assert top[seeds].why.str.contains("seed — уже в деле").all()
+    assert not top[~seeds].why.str.contains("seed — уже в деле").any()
+
+
+def test_numerals_agree_with_nouns(run):
+    """«1 плательщиков», «62 получателей», «1 возвратных циклов» — ошибки согласования в выгрузках."""
+    texts = pd.concat([pd.read_csv(run["out"] / "nodes_roles.csv").evidence, pd.read_csv(run["out"] / "top_nodes.csv").why,
+                       pd.read_csv(run["out"] / "clusters.csv").hypothesis])
+    patterns = {  # контекст → ожидаемые формы
+        r"Хаб: (\d+) (плательщик\w*)": fmt.PAYERS, r"→ (\d+) (получател\w*)": fmt.RECIPIENTS,
+        r"Веер: (\d+) (получател\w*)": fmt.RECIPIENTS, r"\bот (\d+) (плательщик\w*)": fmt.PAYERS_GEN,
+        r"\bпри (\d+) (плательщик\w*)": fmt.PAYERS_PREP, r"связан с (\d+) (ключев\w* узл\w*)": fmt.KEY_NODES_INS,
+        r"(\d+) (возвратн\w* цикл\w*)": fmt.CYCLES, r"(\d+) (повторяющ\w* маршрут\w*)": fmt.ROUTES,
+        r"^(\d+) (узл\w*|узел),": fmt.NODES, r"(\d+) (плательщик\w*) в один день": fmt.PAYERS,
+    }
+    checked, wrong = 0, []
+    for text in texts:
+        for pattern, forms in patterns.items():
+            for number, noun in re.findall(pattern, text):
+                checked += 1
+                if noun != fmt.word(int(number), forms):
+                    wrong.append(f"{number} {noun}")
+    assert checked > 1000 and not wrong, wrong[:5]
+
+
+def test_pattern_flags_match_priority_patterns(run):
+    d = pd.read_csv(run["out"] / "nodes_features.csv")
+    flags = d["flags"].fillna("")
+    assert (flags.str.contains("повторяющиеся_маршруты") == (d.repeated_routes > 0)).all()
+
+
+def test_cluster_hypothesis_names_full_key_gid(run):
+    cl = pd.read_csv(run["out"] / "clusters.csv")
+    real = cl[cl.cluster_id > 0]
+    assert all(f"Ключевой узел: {top.split(';')[0]} (" in hyp for top, hyp in zip(real.top_gids, real.hypothesis))
+    assert not real.hypothesis.str.contains(r"\((?:coordinator|consolidator|distributor|transit|terminal|peripheral),").any()
 
 
 def test_evidence_explains_with_numbers(run):

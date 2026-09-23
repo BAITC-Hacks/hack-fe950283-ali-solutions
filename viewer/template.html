@@ -704,6 +704,7 @@ function renderCard(n){
   const flags = n.fl ? n.fl.split(";").map(f => `<span class="pill${f === "обрыв_4_колена" ? " warn" : ""}">${f.replaceAll("_", " ")}</span>`).join("") : "";
   const sec = n.r2 ? `<div class="note">Также выполнены правила: ${n.r2.split(";").map(r => RU[r]).join(", ")}</div>` : "";
   const trunc = n.tr ? `<div><span>P(передаёт дальше)</span><b>${n.pf.toFixed(2)}</b></div>` : "";
+  const routes = n.rt.length ? `<h3>Устойчивые маршруты через узел</h3><p class="note">Узел переслал деньги дальше не позже ${M.fast_days} дн. после поступления, и это повторилось в разные даты. Признак схемы, а не доказательство движения тех же средств.</p><table><tr><th>откуда → куда</th><th class="num">раз</th><th>даты поступления</th></tr>${n.rt.map(([a, c, dates]) => `<tr><td><span class="lnk gid" data-g="${a}">${byId.get(a).s}</span> → <span class="lnk gid" data-g="${c}">${byId.get(c).s}</span></td><td class="num">${dates.length}</td><td class="note">${dates.map(d => d.slice(5)).join(", ")}</td></tr>`).join("")}</table>${n.rr > n.rt.length ? `<p class="note">…и ещё ${n.rr - n.rt.length}</p>` : ""}` : "";
   const req = n.req.length ? `<h3>Каких данных не хватает</h3><ul class="note" style="padding-left:18px;margin:0">${n.req.map(r => `<li>${esc(r)}</li>`).join("")}</ul>` : "";
   $("#t-node").innerHTML = `
     <div class="card-h"><div><div class="big gid">${n.s}</div><div class="gid note">${n.id}</div></div>
@@ -718,6 +719,7 @@ function renderCard(n){
       <div><span>seed выше по потоку</span><b>${n.su}</b></div><div><span>деньги seed (атриб.)</span><b>${kzt(n.sk)}</b></div>
       <div><span>возможный транзит ≤2 дн.</span><b>${n.tr ? "неизвестно" : pct(n.fs)}</b></div><div><span>синхр. плательщиков</span><b>${n.sync}${n.sync > 1 ? " (" + n.syncdate + ")" : ""}</b></div>
       <div><span>возвратных циклов</span><b>${n.rc}</b></div><div><span>связей с ключевыми</span><b>${n.kl}</b></div>
+      <div><span>всплеск активности</span><b>${n.bu ? `${n.bu} пер. за ${M.burst.days} дн. с ${n.bdate}` : "нет"}</b></div><div><span>устойчивых маршрутов</span><b>${n.rr}</b></div>
       ${trunc}<div><span>кластер</span><b class="lnk" data-cl="${n.c}">#${n.c}</b></div>
     </div>
     <div class="btns"><button class="btn" id="bReview">${review.has(n.id) ? "✓ В списке проверки" : "+ На проверку"}</button><button class="btn sec" id="bEgo">Связи узла</button><button class="btn sec" id="bNet">На общей схеме</button></div>
@@ -727,13 +729,14 @@ function renderCard(n){
     ${timeline(n)}
     ${flowTable(inE.get(n.id) || [], "s", "Кто платил")}
     ${flowTable(outE.get(n.id) || [], "t", "Кому ушло")}
+    ${routes}
     ${req}
     ${cl ? `<h3>Кластер #${cl.cluster_id} · ${esc(cl.archetype)}</h3><p class="note">${esc(cl.hypothesis)}</p>` : ""}`;
   $("#t-node").scrollTop = 0;
   $("#bEgo").onclick = () => { setMode("ego"); showEgo(n.id); };
   $("#bReview").onclick = () => toggleReview(n.id);
   $("#bNet").onclick = () => { setMode("net"); selectNode(n.id); };
-  $("#t-node").querySelectorAll("tr.clk").forEach(tr => tr.onclick = () => selectNode(tr.dataset.g));
+  $("#t-node").querySelectorAll("tr.clk, .lnk[data-g]").forEach(el => el.onclick = () => selectNode(el.dataset.g));
   $("#t-node").querySelectorAll("[data-cl]").forEach(b => b.onclick = () => focusCluster(+b.dataset.cl));
 }
 
@@ -844,7 +847,7 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
    <li>Переводы &lt; 5 000 ₸ не видны: дробление ниже порога не детектируется.</li>
    <li>Кластеры — на неориентированной проекции; направление учтено в ролях.</li>
    <li>Выводы — признаки и гипотезы для проверки, не утверждения о виновности.</li></ul>
-  <h3>Паттерны</h3><p class="note">Возвратные циклы: ${M.n_return_cycles} из ${M.n_cycles} простых циклов длиной ≤6 согласованы по датам (деньги могли пройти круг). FIFO сначала расходует старые поступления; в быстрый транзит входят сопоставления с лагом ≤2 дня. Внутри дня порядок неизвестен. Синхронный сбор — ≥3 разных плательщика в один день.</p></div>`;
+  <h3>Паттерны</h3><p class="note">Возвратные циклы: ${M.n_return_cycles} из ${M.n_cycles} простых циклов длиной ≤6 согласованы по датам (деньги могли пройти круг). FIFO сначала расходует старые поступления; в быстрый транзит входят сопоставления с лагом ≤2 дня. Внутри дня порядок неизвестен. Синхронный сбор — ≥3 разных плательщика в один день. Всплеск активности — за ${M.burst.days} дн. прошло ≥${M.burst.min_tx} переводов узла и это ≥${Math.round(M.burst.min_share * 100)}% всех его переводов (таких узлов ${M.n_burst}); флаг информационный и в приоритет не входит, чтобы не учитывать дважды синхронный сбор и быстрый транзит. Устойчивый маршрут A→узел→B — пересылка ≤${M.fast_days} дн., повторённая в ≥2 разные даты (всего ${M.n_routes}); список — в карточке узла и в report.md.</p></div>`;
 })();
 
 // ---------------------------------------------------------------- ассистент
@@ -857,6 +860,7 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
     `Расскажи про ${top.id}`,
     `Как связаны ${ranked[0].id} и ${ranked[2].id}?`,
     cons ? `Откуда деньги у ${cons.id}?` : null,
+    "Кто собирает деньги с клиентов из списка проверки?",
     "Топ-5 консолидаторов",
     "Какие данные запросить в первую очередь?",
   ].filter(Boolean);
@@ -883,7 +887,9 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
     const wait = document.createElement("div"); wait.className = "msg a note"; wait.textContent = "Думаю…"; $("#chat").appendChild(wait);
     try {
       const recent = history.slice(-6).map(message => ({role:message.role, content:message.content.slice(0,1500)}));
-      const r = await fetch("/api/ask", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({question:q, history:recent})});
+      // «эти», «из списка» — клиенты на «Проверке»; «этот узел» — открытая карточка
+      const context = {review:[...review.keys()], selected:selected || null};
+      const r = await fetch("/api/ask", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({question:q, history:recent, context})});
       const j = await r.json();
       if (!r.ok || typeof j.answer !== "string") throw new Error(j.error || "Некорректный ответ сервера");
       wait.remove();
@@ -905,7 +911,7 @@ $("#t-clusters").querySelectorAll(".cl").forEach(d => d.onclick = () => focusClu
 
 // ---------------------------------------------------------------- поиск: gid клиента или кластер
 const q = $("#q"), sugg = $("#sugg");
-const PLACEHOLDER = {gid:"gid клиента — полный или часть, например 03115284   ( / )", cluster:"Номер кластера или тип: ядро, контур сбора, веерные выплаты…"};
+const PLACEHOLDER = {gid:`gid клиента — полный или часть, например ${ranked[0].s}   ( / )`, cluster:"Номер кластера или тип: ядро, контур сбора, веерные выплаты…"};
 let qmode = "gid", act = 0, matches = [];
 q.placeholder = PLACEHOLDER.gid;
 $("#qmodes").onclick = e => {

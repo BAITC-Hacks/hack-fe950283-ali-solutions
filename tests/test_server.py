@@ -15,8 +15,8 @@ def server(tmp_path):
         llm = False
         model = None
 
-        def ask(self, question, history):
-            return {"answer": question, "history": history, "mode": "test"}
+        def ask(self, question, history, context=None):
+            return {"answer": question, "history": history, "context": context, "mode": "test"}
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(Bot(), tmp_path))
     worker = threading.Thread(target=server.serve_forever, daemon=True)
@@ -63,3 +63,16 @@ def test_valid_history_is_bounded_and_sanitized(server):
     assert status == 200 and result["answer"] == "Вопрос"
     assert len(result["history"]) == 6
     assert result["history"][0] == {"role": "user", "content": "3"}
+
+
+@pytest.mark.parametrize("context", ['[]', '{"review": "1"}', '{"review": [1]}', '{"review": ["12a"]}',
+                                     '{"selected": 5}', '{"review": ["1"], "selected": "x"}'])
+def test_bad_screen_context_is_rejected(server, context):
+    status, response = post(server, '{"question": "Кто собирает деньги с этих?", "context": %s}' % context)
+    assert status == 400 and response["error"]
+
+
+def test_screen_context_is_passed_to_assistant(server):
+    body = {"question": "Кто собирает деньги с этих?", "context": {"review": ["100000000000000100"], "selected": None}}
+    status, result = post(server, json.dumps(body))
+    assert status == 200 and result["context"] == {"review": ["100000000000000100"], "selected": None}

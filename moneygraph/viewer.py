@@ -88,6 +88,9 @@ def build(out: Path, G: nx.DiGraph, ctx: dict) -> Path:
     req = defaultdict(list)
     for r in ctx["requests"].itertuples():
         req[r.gid].append(f"{r.request}: {r.reason}")
+    routes = defaultdict(list)  # устойчивые маршруты через узел: [A, C, даты поступления в узел]
+    for r in ctx["routes"]:
+        routes[r["b"]].append([str(r["a"]), str(r["c"]), r["dates"]])
 
     nodes = []
     for g, r in df.iterrows():
@@ -105,6 +108,7 @@ def build(out: Path, G: nx.DiGraph, ctx: dict) -> Path:
             "lag": None if pd.isna(r.lag_median_days) else r.lag_median_days,
             "sync": int(r.sync_payers_max), "syncd": int(r.sync_day), "syncdate": r.sync_date, "rc": int(r.n_return_cycles),
             "rr": int(r.repeated_routes), "sp": int(r.split_days), "an": int(r.anomaly),
+            "bu": int(r.burst_tx) if r.burst else 0, "bdate": r.burst_date, "rt": routes.get(g, [])[:5],
             "cp": [round(r[f"c_{k}"], 3) for k in C.PRIORITY_WEIGHTS], "req": req.get(g, []),
         })
     txs = defaultdict(list)
@@ -120,6 +124,8 @@ def build(out: Path, G: nx.DiGraph, ctx: dict) -> Path:
             "roles": C.ROLES, "role_ru": C.ROLE_RU, "colors": ROLE_COLORS,
             "weights": C.PRIORITY_WEIGHTS, "role_weight": C.ROLE_WEIGHT,
             "n_cycles": len(ctx["cycles"]), "n_return_cycles": sum(c["returned"] for c in ctx["cycles"]),
+            "n_routes": len(ctx["routes"]), "n_burst": int(df.burst.sum()), "fast_days": C.FAST_DAYS,
+            "burst": {"days": C.BURST_WINDOW_DAYS, "min_tx": C.BURST_MIN_TX, "min_share": C.BURST_MIN_SHARE},
             "rules": rules_table(),
             "checks": [{"passed": bool(passed), "description": text} for passed, text in ctx["checks"]],
             "dataset_id": "-".join(ctx["input_sha256"].values()),
@@ -147,9 +153,10 @@ def rules_table() -> list:
         ["coordinator", f"≥{C.HUB_MIN_PAYERS} плательщиков И ≥{C.HUB_MIN_RECIPIENTS} получателей (хаб) И "
                         f"≥{C.COORD_MIN_KEY_LINKS} прямых связей с ключевыми узлами"],
         ["consolidator", f"≥{C.CONS_MIN_PAYERS} плательщиков (или ≥{C.CONS_ALT_PAYERS}, из них ≥{C.CONS_ALT_SEED_PAYERS} seed) "
-                         f"и плательщиков ≥ получателей; либо хаб, где сбор доминирует"],
+                         f"и плательщиков ≥ получателей; либо хаб, у которого получателей меньше "
+                         f"{C.HUB_DISTR_RATIO}× плательщиков (сбор доминирует)"],
         ["distributor", f"≥{C.DISTR_MIN_RECIPIENTS} получателей и получателей ≥{C.DISTR_FANOUT_RATIO}× плательщиков; "
-                        f"либо хаб, где раздача доминирует (получателей ≥2× плательщиков)"],
+                        f"либо хаб, у которого получателей ≥{C.HUB_DISTR_RATIO}× плательщиков (раздача доминирует)"],
         ["transit", f"не seed, исходящие наблюдаемы; отдал {C.TRANSIT_PT[0]:.0%}–{C.TRANSIT_PT[1]:.0%} полученного, "
                     f"или ≥{C.TRANSIT_FAST_SHARE:.0%} ушло ≤{C.FAST_DAYS} дн. при пропуске {C.TRANSIT_FAST_PT[0]}–{C.TRANSIT_FAST_PT[1]}; "
                     f"через узел ≥{C.TRANSIT_MIN_KZT // 1000} тыс ₸. Seed: переправил ≥{C.SEED_TRANSIT_MIN_KZT // 1000} тыс ₸ "

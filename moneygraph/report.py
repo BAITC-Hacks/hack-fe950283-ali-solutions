@@ -2,7 +2,7 @@
 import pandas as pd
 
 from . import config as C
-from .fmt import kzt, short
+from .fmt import TRANSFERS, kzt, plural, short
 
 
 def data_requests(df: pd.DataFrame) -> pd.DataFrame:
@@ -46,6 +46,7 @@ def _table(df: pd.DataFrame) -> str:
 
 def write_report(path, ctx) -> None:
     df, cl, stats, trunc, res, cyc, req = (ctx[k] for k in ("df", "clusters", "stats", "trunc", "resilience", "cycles", "requests"))
+    routes, G, tx = ctx["routes"], ctx["G"], ctx["tx"]
     L = []
     L.append("# Граф денег — аналитическая справка\n")
     L.append("> Автоматически сгенерировано `python run.py`. Все выводы — **гипотезы для проверки**, "
@@ -56,7 +57,8 @@ def write_report(path, ctx) -> None:
     L.append(f"- оборот **{kzt(stats['turnover_kzt'])}**, период {stats['date_min']} — {stats['date_max']}")
     L.append(f"- кластеров **{cl.shape[0]}** (Louvain, модулярность {ctx['modularity']:.3f})")
     L.append(f"- слабосвязных компонент с учётом изолятов: **{stats['weak_components']}**; seed без исходящих: **{stats['seed_without_outgoing']}**")
-    L.append(f"- возвратных циклов (≤6 шагов, согласованы по датам): **{sum(c['returned'] for c in cyc)}** из {len(cyc)}\n")
+    L.append(f"- возвратных циклов (≤6 шагов, согласованы по датам): **{sum(c['returned'] for c in cyc)}** из {len(cyc)}")
+    L.append(f"- устойчивых маршрутов A→B→C: **{len(routes)}**; узлов со всплеском активности: **{int(df.burst.sum())}**\n")
 
     L.append("## Роли\n")
     rc = df.role.value_counts().reindex(C.ROLES).fillna(0).astype(int)
@@ -109,4 +111,28 @@ def write_report(path, ctx) -> None:
         "длина": [c["len"] for c in rc_],
         "маршрут": [" → ".join(short(g) for g in c["nodes"] + c["nodes"][:1]) for c in rc_],
         "мин. сумма на шаге": [kzt(c["bottleneck_kzt"]) for c in rc_]})))
+
+    L.append("\n## Устойчивые маршруты A → B → C\n")
+    L.append(f"B переслал деньги C не позже чем через {C.FAST_DAYS} дн. после поступления от A, и это повторилось "
+             f"в ≥2 разные даты. Маршрутов: **{len(routes)}**, через {len({r['b'] for r in routes})} узлов. "
+             "Повтор по датам — признак устойчивой схемы, а не доказательство движения тех же средств.\n")
+    top_routes = sorted(routes, key=lambda r: (-len(r["days"]), df.at[r["b"], "rank"]))[:10]
+    L.append(_table(pd.DataFrame({
+        "A": [r["a"] for r in top_routes], "B (через кого)": [r["b"] for r in top_routes], "C": [r["c"] for r in top_routes],
+        "роль B": [C.ROLE_RU[df.at[r["b"], "role"]] for r in top_routes],
+        "повторов": [len(r["days"]) for r in top_routes],
+        "даты поступления в B": [", ".join(d[5:] for d in r["dates"]) for r in top_routes],
+        "A→B за период": [kzt(G[r["a"]][r["b"]]["sum_kzt"]) for r in top_routes],
+        "B→C за период": [kzt(G[r["b"]][r["c"]]["sum_kzt"]) for r in top_routes]})))
+
+    L.append("\n## Всплески активности\n")
+    bursts = df[df.burst].sort_values(["burst_tx", "rank"], ascending=[False, True]).head(10)
+    daily = tx.groupby(tx.date.dt.normalize()).size()
+    L.append(f"Узел отмечен, если за {C.BURST_WINDOW_DAYS} дн. прошло ≥{C.BURST_MIN_TX} его входящих и исходящих переводов "
+             f"и это ≥{C.BURST_MIN_SHARE:.0%} всех его переводов за период. Таких узлов: **{int(df.burst.sum())}**. "
+             f"По сети в целом самый активный день {daily.idxmax().date()} — {plural(int(daily.max()), TRANSFERS)} "
+             f"при медиане {daily.median():.0f} в день.\n")
+    L.append(_table(pd.DataFrame({
+        "gid": bursts.index, "роль": bursts.role.map(C.ROLE_RU).values, "переводов в окне": bursts.burst_tx.values,
+        "всего переводов": (bursts.in_tx + bursts.out_tx).values, "окно с": bursts.burst_date.values})))
     path.write_text("\n".join(L), encoding="utf-8")

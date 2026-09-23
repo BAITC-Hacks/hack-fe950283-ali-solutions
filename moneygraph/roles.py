@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
-from .fmt import kzt, pct, clip_text
+from .fmt import KEY_NODES_INS, PAYERS, PAYERS_GEN, PAYERS_PREP, RECIPIENTS, clip_text, kzt, pct, plural
 
 
 def sat(x, lo, hi):
@@ -27,7 +27,7 @@ def assign(G, df: pd.DataFrame) -> pd.DataFrame:
 
     # ---------- правила
     hub = (d.in_deg >= C.HUB_MIN_PAYERS) & (d.out_deg >= C.HUB_MIN_RECIPIENTS)
-    out_side = d.out_deg >= 2 * d.in_deg  # у хаба сторона «раздаёт» доминирует
+    out_side = d.out_deg >= C.HUB_DISTR_RATIO * d.in_deg  # у хаба сторона «раздаёт» доминирует
     distr = ((d.out_deg >= C.DISTR_MIN_RECIPIENTS) & (d.out_deg >= C.DISTR_FANOUT_RATIO * d.in_deg)) \
         | (hub & out_side)
     cons = (((d.in_deg >= C.CONS_MIN_PAYERS)
@@ -96,7 +96,9 @@ def _flags(d):
     f = pd.DataFrame(index=d.index)
     f["быстрый_транзит"] = (d.fast_in_share >= C.TRANSIT_FAST_SHARE) & (d.in_kzt >= C.TRANSIT_MIN_KZT)
     f["синхронный_сбор"] = d.sync_payers_max >= 3
+    f["всплеск_активности"] = d.burst
     f["возвратные_циклы"] = d.n_return_cycles > 0
+    f["повторяющиеся_маршруты"] = d.repeated_routes > 0
     f["аномалия_колена"] = d.anomaly
     f["дробление"] = d.split_days >= 3
     f["обрыв_4_колена"] = d.truncated
@@ -106,11 +108,11 @@ def _flags(d):
 
 def _evidence(r) -> str:
     seedp = f" (seed: {r.seed_payers})" if r.seed_payers else ""
-    up = f"; деньги {r.seed_upstream} seed доходят до узла" if r.seed_upstream >= 3 else ""
+    up = f"; к узлу ведут цепочки переводов от {r.seed_upstream} seed" if r.seed_upstream >= 3 else ""
     fwd = r.out_kzt / r.in_kzt if r.in_kzt else 0
     if r.role == "coordinator":
-        return (f"Хаб: {r.in_deg} плательщиков{seedp} → {r.out_deg} получателей; вход {kzt(r.in_kzt)}, "
-                f"выход {kzt(r.out_kzt)}; связан с {r.key_links} ключевыми узлами"
+        return (f"Хаб: {plural(r.in_deg, PAYERS)}{seedp} → {plural(r.out_deg, RECIPIENTS)}; вход {kzt(r.in_kzt)}, "
+                f"выход {kzt(r.out_kzt)}; связан с {plural(r.key_links, KEY_NODES_INS)}"
                 + (f"; возвратных циклов: {r.n_return_cycles}" if r.n_return_cycles else ""))
     if r.role == "consolidator":
         if not r.out_observed:
@@ -121,10 +123,10 @@ def _evidence(r) -> str:
             tail = f"отдал {kzt(r.out_kzt)} {r.out_deg} получ. — больше, чем получил в выборке"
         else:
             tail = f"дальше ушло {pct(fwd)} ({r.out_deg} получ.)"
-        return f"Сбор от {r.in_deg} плательщиков{seedp}: {kzt(r.in_kzt)}; {tail}{up}"
+        return f"Сбор от {plural(r.in_deg, PAYERS_GEN)}{seedp}: {kzt(r.in_kzt)}; {tail}{up}"
     if r.role == "distributor":
         med = r.out_kzt / max(r.out_tx, 1)
-        return (f"Веер: {r.out_deg} получателей при {r.in_deg} плательщиках; разослал {kzt(r.out_kzt)}, "
+        return (f"Веер: {plural(r.out_deg, RECIPIENTS)} при {plural(r.in_deg, PAYERS_PREP)}; разослал {kzt(r.out_kzt)}, "
                 f"в среднем {kzt(med)} за перевод"
                 + ("; вход занижен (seed)" if r.is_seed else ""))
     if r.role == "transit":
@@ -132,22 +134,23 @@ def _evidence(r) -> str:
             return (f"Признаки передачи средств seed: вход неполон; переправил {kzt(r.out_kzt)} {r.out_deg} получ., "
                     f"{pct(r.top_out_share)} — одному")
         fast = f"; {pct(r.fast_in_share)} ушло ≤{C.FAST_DAYS} дн. после поступления" if r.fast_in_share >= 0.3 else ""
-        return f"Пропуск {pct(fwd)}: получил {kzt(r.in_kzt)} от {r.in_deg}, отдал {kzt(r.out_kzt)} {r.out_deg} получ.{fast}"
+        return (f"Пропуск {pct(fwd)}: получил {kzt(r.in_kzt)} от {plural(r.in_deg, PAYERS_GEN)}, "
+                f"отдал {kzt(r.out_kzt)} {r.out_deg} получ.{fast}")
     if r.role == "terminal":
         if r.truncated:
             return (f"4-е колено, исходящие не выгружены; модель: P(сток)={1 - r.p_forward:.2f}; "
-                    f"получил {kzt(r.in_kzt)} от {r.in_deg}{up}")
+                    f"получил {kzt(r.in_kzt)} от {plural(r.in_deg, PAYERS_GEN)}{up}")
         kept = "исходящих нет" if r.out_deg == 0 else f"дальше ушло лишь {pct(fwd)}"
-        return f"Получил {kzt(r.in_kzt)} от {r.in_deg} плательщиков{seedp}, {kept} (исходящие наблюдаемы){up}"
+        return f"Получил {kzt(r.in_kzt)} от {plural(r.in_deg, PAYERS_GEN)}{seedp}, {kept} (исходящие наблюдаемы){up}"
     # peripheral
     if r.n_edges == 0:
         return "Узел без переводов ≥5 тыс ₸ внутри банка за период: данных для роли нет; нужен запрос входящих и межбанка"
     if r.truncated:
-        return (f"4-е колено (обход оборван): {r.in_tx} поступл. на {kzt(r.in_kzt)} от {r.in_deg}; "
+        return (f"4-е колено (обход оборван): {r.in_tx} поступл. на {kzt(r.in_kzt)} от {plural(r.in_deg, PAYERS_GEN)}; "
                 f"P(передаёт дальше)={r.p_forward:.2f} — порогов ролей не достигает")
     parts = []
     if r.in_deg:
-        parts.append(f"получил {kzt(r.in_kzt)} от {r.in_deg}")
+        parts.append(f"получил {kzt(r.in_kzt)} от {plural(r.in_deg, PAYERS_GEN)}")
     if r.out_deg:
         parts.append(f"отдал {kzt(r.out_kzt)} {r.out_deg} получ.")
     if r.in_kzt and r.out_observed and not r.is_seed and r.out_deg:
