@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.playwright-mcp/
+.DS_Store
+~$*.docx
