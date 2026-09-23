@@ -6,6 +6,7 @@
     OPENAI_BASE_URL=http://localhost:11434/v1 OPENAI_API_KEY=x OPENAI_MODEL=qwen2.5 python serve.py  # локальная LLM
 """
 import argparse
+import errno
 import json
 import threading
 import webbrowser
@@ -17,6 +18,12 @@ from moneygraph import pipeline
 from moneygraph.assistant import Assistant
 
 MAX_BODY_BYTES = 65_536  # вопрос + до 6 сообщений истории в UTF-8 (кириллица — 2 байта)
+MAX_CONTEXT_GIDS = 200   # список проверки, который экран передаёт как контекст вопроса
+PORT_ATTEMPTS = 20       # если порт занят, пробуем следующие
+
+
+def _is_gid(value) -> bool:
+    return isinstance(value, str) and value.isascii() and value.isdigit() and len(value) <= 19
 
 
 def make_handler(bot, out_dir):
@@ -80,8 +87,15 @@ def make_handler(bot, out_dir):
             ):
                 return self._json({"error": "Некорректная история диалога"}, 400)
             history = [{"role": message["role"], "content": message["content"]} for message in history[-6:]]
+            context = request.get("context", {})
+            if not isinstance(context, dict):
+                return self._json({"error": "Некорректный контекст экрана"}, 400)
+            review, selected = context.get("review", []), context.get("selected")
+            if not isinstance(review, list) or len(review) > MAX_CONTEXT_GIDS or not all(map(_is_gid, review)) \
+                    or (selected is not None and not _is_gid(selected)):
+                return self._json({"error": "Некорректный контекст экрана"}, 400)
             try:
-                response = bot.ask(question.strip(), history)
+                response = bot.ask(question.strip(), history, {"review": review, "selected": selected})
             except Exception:
                 self.log_error("Ошибка обработки вопроса")
                 return self._json({"error": "Не удалось обработать вопрос. Попробуйте уточнить формулировку."}, 500)
@@ -107,8 +121,10 @@ def main():
     bot = Assistant(ctx)
     out_dir = str(Path(a.out).resolve())
 
-    srv = ThreadingHTTPServer(("127.0.0.1", a.port), make_handler(bot, out_dir))
-    url = f"http://localhost:{a.port}/"
+    srv = bind(a.port, make_handler(bot, out_dir))
+    if srv.server_port != a.port:
+        print(f"\nПорт {a.port} занят — использую {srv.server_port}")
+    url = f"http://localhost:{srv.server_port}/"
     mode = f"LLM {bot.model}" if bot.llm else "офлайн (задайте OPENAI_API_KEY для LLM)"
     print(f"\nЭкран просмотра: {url}\nАссистент: {mode}\nCtrl+C — остановить")
     if not a.no_open:
@@ -119,6 +135,17 @@ def main():
         pass
     finally:
         srv.server_close()
+
+
+def bind(port, handler):
+    """Первый свободный порт из port, port+1, …: занятый порт не должен ронять демо."""
+    for candidate in range(port, port + PORT_ATTEMPTS):
+        try:
+            return ThreadingHTTPServer(("127.0.0.1", candidate), handler)
+        except OSError as error:
+            if error.errno not in (errno.EADDRINUSE, getattr(errno, "WSAEADDRINUSE", None)):
+                raise
+    raise SystemExit(f"Порты {port}–{port + PORT_ATTEMPTS - 1} заняты. Укажите свободный: python serve.py --port 9000")
 
 
 if __name__ == "__main__":

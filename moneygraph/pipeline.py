@@ -14,8 +14,9 @@ def compute(data_dir: Path, log=print) -> dict:
     log(f"  данные: {stats['n_nodes']} узлов, {stats['n_edges']} рёбер, {stats['n_tx']} транзакций — консистентны")
     G = load.build_graph(edges, nodes)
     stats["weak_components"] = nx.number_weakly_connected_components(G)
-    df, cyc = features.compute_all(G, nodes, tx)
-    log(f"  метрики: степени, суммы, seed-атрибуция, PageRank, betweenness, время, {len(cyc)} циклов")
+    df, cyc, routes = features.compute_all(G, nodes, tx)
+    log(f"  метрики: степени, суммы, seed-атрибуция, PageRank, betweenness, время, {len(cyc)} циклов, "
+        f"{len(routes)} устойчивых маршрутов")
     df, trunc = truncation.fit_predict(G, df)
     log(f"  модель обрыва 4-го колена: ROC-AUC {trunc['cv_auc']:.2f}, "
         f"≈{trunc['expected_true_sinks']:.0f} из {trunc['truncated_nodes']} — настоящие стоки")
@@ -27,7 +28,7 @@ def compute(data_dir: Path, log=print) -> dict:
     log(f"  кластеров: {len(cl)} (модулярность {modularity:.3f})")
     res = resilience.simulate(G, df)
     req = report.data_requests(df)
-    ctx = {"G": G, "df": df, "clusters": cl, "stats": stats, "trunc": trunc, "cycles": cyc, "tx": tx,
+    ctx = {"G": G, "df": df, "clusters": cl, "stats": stats, "trunc": trunc, "cycles": cyc, "routes": routes, "tx": tx,
            "modularity": modularity, "resilience": res, "requests": req, "nodes": nodes, "edges": edges}
     log(f"  расчёт: {time.time() - t0:.1f} с")
     return ctx

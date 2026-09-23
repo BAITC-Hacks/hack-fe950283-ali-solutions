@@ -17,13 +17,17 @@ from collections import defaultdict
 import networkx as nx
 
 from . import config as C
-from .fmt import kzt, short
+from .fmt import kzt, plural, short
 
 ROLE_WORDS = {
     "координатор": "coordinator", "организатор": "coordinator", "консолидатор": "consolidator",
     "сборщик": "consolidator", "распределител": "distributor", "веер": "distributor",
     "транзит": "transit", "конечн": "terminal", "терминал": "terminal", "периферия": "peripheral",
 }
+# ссылки на то, что аналитик видит на экране: «эти/из списка» — список проверки, «этот узел» — открытая карточка
+REVIEW_REF = re.compile(r"\bэт(и|их|им|ими)\b|выбранн|отмеченн|списк")
+SELECTED_REF = re.compile(r"\bэт(от|ого|ому|ом)\b|\bнего\b|\bн[её]м\b|открыт\w* карточк")
+SOURCES_GEN = ("указанного узла", "указанных узлов", "указанных узлов")
 
 def system_prompt(stats: dict) -> str:
     """Период и размеры сети берутся из данных, а не зашиты в текст."""
@@ -48,6 +52,9 @@ class GraphTools:
         self.requests = ctx["requests"]
         self.trunc = ctx["trunc"]
         self.stats = ctx["stats"]
+        self.routes = defaultdict(list)
+        for route in ctx["routes"]:
+            self.routes[route["b"]].append(route)
         candidates = defaultdict(list)
         for identifier in self.df.index:
             candidates[short(identifier)].append(identifier)
@@ -79,6 +86,8 @@ class GraphTools:
             "recipients": int(r.out_deg), "seed_upstream": int(r.seed_upstream), "seed_money_in_kzt": round(r.seed_kzt_in),
             "outgoing_observed": bool(r.out_observed), "p_forward_if_truncated": round(float(r.p_forward), 2) if r.truncated else None,
             "flags": r["flags"], "why": r.why,
+            "burst": {"transfers": int(r.burst_tx), "window_days": C.BURST_WINDOW_DAYS, "from": r.burst_date} if r.burst else None,
+            "stable_routes": [{"from": str(x["a"]), "to": str(x["c"]), "dates": x["dates"]} for x in self.routes[g][:5]],
             "top_payers": [{"gid": str(u), "kzt": round(d["sum_kzt"]), "n_tx": d["n_tx"], "role": self.df.at[u, "role"]} for u, _, d in payers],
             "top_recipients": [{"gid": str(v), "kzt": round(d["sum_kzt"]), "n_tx": d["n_tx"], "role": self.df.at[v, "role"]} for _, v, d in rcpts],
             "data_gaps": self.requests[self.requests.gid == g][["request", "reason"]].to_dict("records"),
@@ -221,15 +230,34 @@ class Assistant:
         except Exception as e:  # ответ модели мог содержать неверные аргументы
             return {"error": f"{type(e).__name__}: {e}"}
 
-    def ask(self, question: str, history=None) -> dict:
+    def ask(self, question: str, history=None, context=None) -> dict:
+        """context — что открыто на экране: {"review": [gid, …], "selected": gid | None}."""
+        context = context or {}
         if self.llm:
             try:
-                return self._ask_llm(question, history or [])
+                return self._ask_llm(question, history or [], context)
             except (urllib.error.URLError, KeyError, ValueError, TimeoutError) as e:
-                res = self._ask_offline(question)
+                res = self._ask_offline(question, context)
                 res["answer"] = f"(LLM недоступен: {e}; ответ офлайн-режима)\n\n" + res["answer"]
                 return res
-        return self._ask_offline(question)
+        return self._ask_offline(question, context)
+
+    def _known(self, values):
+        found = []
+        for value in values or []:
+            g = self.tools.resolve(value)
+            if g is not None and g not in found:
+                found.append(g)
+        return found
+
+    def _context_note(self, context) -> str:
+        review, selected = self._known(context.get("review")), self._known([context.get("selected")])
+        parts = (["список проверки аналитика: " + ", ".join(map(str, review))] if review else []) + \
+                ([f"открыта карточка {selected[0]}"] if selected else [])
+        if not parts:
+            return ""
+        return ("Контекст экрана: " + "; ".join(parts) + ". «Эти», «выбранные», «из списка» — это список проверки; "
+                "«этот узел» — открытая карточка.")
 
     # ---------------------------------------------------------------- LLM-агент
     def _post(self, payload):
@@ -238,8 +266,10 @@ class Assistant:
         with urllib.request.urlopen(req, timeout=90) as r:
             return json.loads(r.read())
 
-    def _ask_llm(self, question, history):
-        msgs = [{"role": "system", "content": self.system_prompt}] + history[-6:] + [{"role": "user", "content": question}]
+    def _ask_llm(self, question, history, context):
+        note = self._context_note(context)
+        msgs = [{"role": "system", "content": self.system_prompt}] + ([{"role": "system", "content": note}] if note else []) \
+            + history[-6:] + [{"role": "user", "content": question}]
         used = []
         for _ in range(8):
             resp = self._post({"model": self.model, "messages": msgs, "tools": _tool_schema(), "tool_choice": "auto"})
@@ -266,13 +296,23 @@ class Assistant:
                 found.append(g)
         return found
 
-    def _ask_offline(self, q):
+    def _ask_offline(self, q, context=None):
         T, ql, gids = self.tools, q.lower(), self._gids(q)
         # неизвестным считаем только полный 18-значный gid: 8 цифр могут быть суммой («больше 10000000»)
         unknown = [identifier for identifier in re.findall(r"\b\d{18}\b", q) if T.resolve(identifier) is None]
         if unknown:
             return {"answer": "Не удалось однозначно найти gid: " + ", ".join(unknown) + ". Проверьте полный идентификатор.",
                     "mode": "офлайн (шаблоны)", "tools": [], "focus": None}
+        source = ""
+        if not gids and REVIEW_REF.search(ql):
+            gids = self._known((context or {}).get("review"))
+            if not gids:
+                return {"answer": "Список проверки пуст: добавьте клиентов кнопкой «+» в топе или в карточке, и я отвечу про них.",
+                        "mode": "офлайн (шаблоны)", "tools": [], "focus": None}
+            source = f"Клиенты из списка проверки: {len(gids)}.\n"
+        elif not gids and SELECTED_REF.search(ql):
+            gids = self._known([(context or {}).get("selected")])
+            source = "Узел из открытой карточки.\n" if gids else ""
         role = next((r for w, r in ROLE_WORDS.items() if w in ql), None)
         num = re.search(r"топ[- ]?(\d+)", ql)
         limit = int(num.group(1)) if num else 10
@@ -281,11 +321,12 @@ class Assistant:
         if len(gids) >= 2 and re.search(r"собира|общ|сход|консолид|кому|куда", ql):
             used.append("common_downstream")
             r = T.common_downstream(gids)
-            L.append(f"Деньги от {len(r['sources'])} указанных узлов (по направлению переводов, ≤3 шага):")
+            L.append(f"Куда ведут переводы от {plural(len(r['sources']), SOURCES_GEN)} (по направлению переводов, ≤3 шага):")
             for x in r["direct_common_recipients"]:
-                L.append(f"• {x['gid']} ({x['role']}) напрямую получает от {len(x['from'])} из них, всего {kzt(x['kzt'])}")
+                L.append(f"• {x['gid']} ({C.ROLE_RU[x['role']]}) напрямую получает от {len(x['from'])} из них, всего {kzt(x['kzt'])}")
             for x in r["reachable_common"][:6]:
-                L.append(f"• {x['gid']} ({x['role']}, приоритет #{x['priority_rank']}) — доходят деньги {x['reached_from']} из {x['of']}: {x['evidence']}")
+                L.append(f"• {x['gid']} ({C.ROLE_RU[x['role']]}, приоритет #{x['priority_rank']}) — к нему ведут переводы "
+                         f"от {x['reached_from']} из {x['of']}: {x['evidence']}")
             if len(L) == 1:
                 L.append("• общих получателей в пределах 3 шагов не найдено")
             focus = (r["direct_common_recipients"] or r["reachable_common"] or [{}])[0].get("gid")
@@ -307,7 +348,7 @@ class Assistant:
             r = T.trace(gids[0], "up")
             L.append(f"Откуда деньги у {r['gid']} (≤2 шага, узлов: {r['n_nodes']}):")
             L += [f"• {e['from']} → {e['to']}: {kzt(e['kzt'])} ({e['n_tx']} пер.), шаг {e['hop']}" for e in r["edges"][:10]]
-            L.append("Ключевые узлы выше по потоку: " + ", ".join(f"{x['gid']} ({x['role']})" for x in r["key_nodes"][:5]))
+            L.append("Ключевые узлы выше по потоку: " + ", ".join(f"{x['gid']} ({C.ROLE_RU[x['role']]})" for x in r["key_nodes"][:5]))
             focus = r["gid"]
         elif gids and re.search(r"куда|кому|получател|вниз|ушл", ql):
             used.append("trace")
@@ -334,7 +375,7 @@ class Assistant:
             used.append("cluster_info")
             c = T.cluster_info(re.search(r"кластер\D*(\d+)", ql).group(1))
             L.append(c.get("error") or f"Кластер {c['cluster_id']} ({c['archetype']}): {c['hypothesis']}\nКлючевые: "
-                     + ", ".join(f"{x['gid']} ({x['role']})" for x in c["top"]))
+                     + ", ".join(f"{x['gid']} ({C.ROLE_RU[x['role']]})" for x in c["top"]))
         elif re.search(r"данн|запрос|полнот|не хватает|пятн", ql):
             used.append("data_gaps")
             r = T.data_gaps()
@@ -344,7 +385,7 @@ class Assistant:
             used.append("top_nodes")
             rows = T.top_nodes(role=role, limit=min(limit, 30))
             L.append(f"Топ-{len(rows)}" + (f" ({C.ROLE_RU[role]})" if role else "") + " по приоритету:")
-            L += [f"{x['priority_rank']}. {x['gid']} — {x['role']}{', seed' if x['is_seed'] else ''}: {x['evidence']}" for x in rows]
+            L += [f"{x['priority_rank']}. {x['gid']} — {C.ROLE_RU[x['role']]}{', seed' if x['is_seed'] else ''}: {x['evidence']}" for x in rows]
             focus = rows[0]["gid"] if rows else None
         elif re.search(r"обрыв|4.?(е|го)? колен|усеч", ql):
             t = T.trunc
@@ -357,7 +398,7 @@ class Assistant:
                      "• «Откуда деньги у <gid>?» / «Куда ушли деньги <gid>?»\n• «Как связаны <gid> и <gid>?»\n"
                      "• «Топ-5 консолидаторов» • «Кластер 3» • «Какие данные запросить?»\n"
                      "С OPENAI_API_KEY вопросы можно задавать в свободной форме.")
-        return {"answer": "\n".join(L).strip(), "mode": "офлайн (шаблоны)", "tools": used, "focus": focus}
+        return {"answer": source + "\n".join(L).strip(), "mode": "офлайн (шаблоны)", "tools": used, "focus": focus}
 
 
 def _first_gid(text):

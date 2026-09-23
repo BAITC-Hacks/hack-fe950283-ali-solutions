@@ -108,6 +108,8 @@ def temporal(tx: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
             "sync_payers_max": 0,
             "sync_day": 0,
             "sync_date": "",
+            "burst_tx": 0,
+            "burst_date": "",
         }
         if i_l and o_l:
             r["fast_in_share"], r["lag_median_days"] = _fast_forward(i_l, o_l)
@@ -118,8 +120,14 @@ def temporal(tx: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
             day, payers = max(by_day.items(), key=lambda kv: (len(kv[1]), -kv[0]))
             r["sync_payers_max"], r["sync_day"] = len(payers), day
             r["sync_date"] = str((tx.date.min().normalize() + pd.Timedelta(days=day - 1)).date())
+        if i_l or o_l:
+            r["burst_tx"], day = _busiest_window([d for d, _, _ in i_l + o_l])
+            r["burst_date"] = str((tx.date.min().normalize() + pd.Timedelta(days=day - 1)).date())
         rows[g] = r
     t = pd.DataFrame.from_dict(rows, orient="index")
+    # всплеск активности: большая часть переводов узла за период пришлась на короткое окно
+    n_tx = pd.Series({g: len(ins.get(g, [])) + len(outs.get(g, [])) for g in t.index})
+    t["burst"] = (t.burst_tx >= C.BURST_MIN_TX) & (t.burst_tx >= C.BURST_MIN_SHARE * n_tx)
 
     # дробление: несколько переводов одному получателю в один день
     split = tx.groupby(["src", "dst", "day"]).size()
@@ -127,7 +135,7 @@ def temporal(tx: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
     t["split_days"] = split.reindex(t.index).fillna(0).astype(int)
 
     # устойчивые маршруты A→B→C: B переслал дальше в пределах FAST_DAYS; повтор — в ≥2 разные даты
-    fast_routes, repeated = {}, {}
+    fast_routes, repeated, listing = {}, {}, []
     for g in df.index:
         if g not in ins or g not in outs:
             continue
@@ -139,9 +147,26 @@ def temporal(tx: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
         if seen:
             fast_routes[g] = len(seen)
             repeated[g] = sum(len(v) >= 2 for v in seen.values())
+            listing += [{"a": a, "b": g, "c": c, "days": sorted(v)} for (a, c), v in seen.items() if len(v) >= 2]
     t["fast_routes"] = pd.Series(fast_routes).reindex(t.index).fillna(0).astype(int)
     t["repeated_routes"] = pd.Series(repeated).reindex(t.index).fillna(0).astype(int)
-    return df.join(t)
+    start = tx.date.min().normalize()
+    for route in listing:
+        route["dates"] = [str((start + pd.Timedelta(days=day - 1)).date()) for day in route["days"]]
+    listing.sort(key=lambda route: (-len(route["days"]), route["b"], route["a"], route["c"]))
+    return df.join(t), listing
+
+
+def _busiest_window(days):
+    """Окно BURST_WINDOW_DAYS с наибольшим числом переводов: (число, первый день окна)."""
+    days = sorted(days)
+    best, first, j = 0, days[0], 0
+    for i, day in enumerate(days):
+        while day - days[j] >= C.BURST_WINDOW_DAYS:
+            j += 1
+        if i - j + 1 > best:
+            best, first = i - j + 1, days[j]
+    return best, first
 
 
 def _fast_forward(i_l, o_l):
@@ -216,7 +241,7 @@ def _time_consistent(pairs, days) -> bool:
 
 # ---------------------------------------------------------------- аномалии относительно колена
 
-ANOMALY_COLS = {"in_deg": "плательщиков", "out_deg": "получателей", "in_kzt": "вход ₸", "out_kzt": "выход ₸"}
+ANOMALY_COLS = {"in_deg": "число плательщиков", "out_deg": "число получателей", "in_kzt": "вход ₸", "out_kzt": "выход ₸"}
 
 
 def anomalies(df: pd.DataFrame) -> pd.DataFrame:
@@ -236,7 +261,7 @@ def compute_all(G, nodes, tx):
     df = basic(G, nodes)
     df = seed_linkage(G, df)
     df = centrality(G, df)
-    df = temporal(tx, df)
+    df, routes = temporal(tx, df)
     df, cyc = cycles(G, tx, df)
     df = anomalies(df)
-    return df, cyc
+    return df, cyc, routes

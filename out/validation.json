@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-23T11:16:58.660929+00:00",
+  "generated_at": "2026-09-23T11:57:24.028315+00:00",
   "passed": true,
-  "elapsed_seconds": 4.32,
+  "elapsed_seconds": 4.483,
   "stats": {
     "n_nodes": 2248,
     "n_edges": 3119,
@@ -22,15 +22,15 @@
     "transactions.parquet": "c30c5317b5439591dde86f2058dc47a3d19b2900c055ded994fe547f6fb7e7da"
   },
   "output_sha256": {
-    "clusters.csv": "a585590ba0f5f2cb08b7fd568dfb97c973c791b1d91518208fef9bd98232339f",
-    "clusters_details.csv": "14b4a9c2fc7413a0d79b8ca5f5b2ba2596d6850cca08abf78fc2df2bbb3b2230",
+    "clusters.csv": "abf5b5bb12e7a3781cd9b4c6c8fd0a69b2cfba9e5c528406bf659b3e4f68757a",
+    "clusters_details.csv": "59c99cce21b27d81c41699d706bbf4925691b9a09ac4b8578c1e15d48f2b4a20",
     "data_requests.csv": "f801134374ca7e6656d3a4d4250ec2fe65478be179f23afefed7bcaf3328b6f1",
-    "index.html": "08beaffdff68d85445fb94427a233b070b088c14818829f0a48c5e829960c06d",
-    "nodes_features.csv": "9223e6d6da9474f276f4430b9bdb2369bee4ae68ed405f79f1c18773625abaad",
-    "nodes_roles.csv": "fc033a2f35b8530bfa2e743dd43dfabde5c223726ac5ead82ed6ddcbf6f6e63e",
-    "report.md": "1a26e730302b654295a8f2ffaa66c0e888bf52d183b3206e356306315677772c",
+    "index.html": "c52189a507ea6ef17279c2e311e6ac5f52d4c2650779941cb73e685e8bbfde44",
+    "nodes_features.csv": "ae95bd66eefb5f9e8237614e3c6e9cc4b70b3b5c55bc6e27d5e8bed9eff700d1",
+    "nodes_roles.csv": "f20eea4fe589f2052606435151a35e1447670006897fcec2481a036254925a66",
+    "report.md": "a22b1a60e4400d7fdeaaee66d0c479726d7f78dc5bb1098189d1647388a8c3a9",
     "resilience.csv": "90e74924a0d2e09dc6e39c56951fdf0d2079ca6b88007539b9d566b43baf96c1",
-    "top_nodes.csv": "f9184f3b388f2e366de6aaf3975d62ded7a5a4ba8649e1bb90ad3e9c8c4d1729"
+    "top_nodes.csv": "b5598d649ccb27dcec05ba8b731be83419cef8cf55cc35fc83beb5e2a55932c0"
   },
   "python": "3.13.12",
   "packages": {
@@ -46,9 +46,13 @@
     "MAX_DEPTH": 4,
     "FAST_DAYS": 2,
     "RANDOM_SEED": 42,
+    "BURST_WINDOW_DAYS": 3,
+    "BURST_MIN_TX": 8,
+    "BURST_MIN_SHARE": 0.5,
     "HUB_MIN_PAYERS": 5,
     "HUB_MIN_RECIPIENTS": 10,
     "COORD_MIN_KEY_LINKS": 5,
+    "HUB_DISTR_RATIO": 2,
     "DISTR_MIN_RECIPIENTS": 10,
     "DISTR_FANOUT_RATIO": 3,
     "CONS_MIN_PAYERS": 4,
@@ -104,7 +108,8 @@
     },
     "SEED_NOVELTY_FACTOR": 0.85,
     "TOP_N": 50,
-    "LOUVAIN_RUNS": 10
+    "LOUVAIN_RUNS": 10,
+    "CLUSTER_STABLE_MIN": 0.5
   },
   "checks": [
     {

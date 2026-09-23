@@ -47,6 +47,30 @@ def test_eight_digit_amount_is_not_reported_as_unknown_gid(ctx, monkeypatch):
     assert "Не удалось" not in result["answer"] and result["tools"] == ["top_nodes"]
 
 
+def test_offline_resolves_these_to_review_list(ctx, monkeypatch):
+    """Пример из ТЗ: «кто собирает деньги с этих пятерых?» — «эти» берутся из списка проверки на экране."""
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    G, df = ctx["G"], ctx["df"]
+    cons = df[(df.role == "consolidator") & (df.in_deg >= 5)].sort_values("rank").index[0]
+    review = [str(u) for u in list(G.predecessors(cons))[:5]]
+    r = Assistant(ctx).ask("Кто собирает деньги с этих пятерых?", context={"review": review, "selected": None})
+    assert r["tools"] == ["common_downstream"] and str(cons) in r["answer"]
+    assert r["answer"].startswith(f"Клиенты из списка проверки: {len(review)}.")
+
+
+def test_offline_empty_review_list_is_explained(ctx, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    r = Assistant(ctx).ask("Кто собирает деньги с этих пятерых?", context={"review": [], "selected": None})
+    assert "Список проверки пуст" in r["answer"] and r["tools"] == []
+
+
+def test_offline_this_node_uses_open_card(ctx, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    top = str(ctx["df"].sort_values("rank").index[0])
+    r = Assistant(ctx).ask("Расскажи про этот узел", context={"review": [], "selected": top})
+    assert r["tools"] == ["node_card"] and r["focus"] == top
+
+
 def test_system_prompt_describes_loaded_data(ctx):
     prompt = Assistant(ctx).system_prompt
     stats = ctx["stats"]
@@ -88,7 +112,9 @@ def test_llm_tool_loop(ctx, monkeypatch):
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_BASE_URL", f"http://127.0.0.1:{srv.server_port}/v1")
-    r = Assistant(ctx).ask("Кто главный?")
+    r = Assistant(ctx).ask("Кто главный?", context={"review": [top], "selected": top})
     srv.shutdown()
     assert r["tools"] == ["node_card"] and r["focus"] == top
     assert seen[0]["tools"] and seen[0]["messages"][0]["role"] == "system"
+    screen = seen[0]["messages"][1]
+    assert screen["role"] == "system" and f"список проверки аналитика: {top}" in screen["content"]
